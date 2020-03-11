@@ -5,25 +5,33 @@ extern crate bin_buffer;
 use shapefile::*;
 use bin_buffer::*;
 use std::path::Path;
+use std::time::Instant;
 
 fn main() {
     let args = lapp::parse_args("
     Preprocess shapefiles into more efficient files.
-      <file> (string) input file name"
+      <inputfile> (string) input file name
+      <outputfile> (string) output file name"
     );
 
-    let file = args.get_string("file");
+    let infile = args.get_string("inputfile");
+    let outfile = args.get_string("outputfile");
 
     println!("Shapefile processor...");
-    if let Ok(shapes) = shapefile::read(file.clone()){
+    let timer = Instant::now();
+    if let Ok(shapes) = shapefile::read(infile.clone()){
+        println!("Read file \"{}\": {} ms", infile, timer.elapsed().as_millis());
         println!("Shapes: {}", shapes.len());
         let shapezs = compress_heightmap(shapes);
+        println!("Compressed: {} ms", timer.elapsed().as_millis());
         let mut buffer = Vec::new();
         shapezs.into_buffer(&mut buffer);
-        let ok = buffer_write_file(&Path::new("heightmap.bin"), &buffer);
-        println!("Writing file went ok?: {}", ok);
+        println!("Bufferized: {} ms", timer.elapsed().as_millis());
+        let ok = buffer_write_file(&Path::new(&outfile), &buffer);
+        println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
+                 timer.elapsed().as_millis());
     }else{
-        println!("Could not read file: {}", file);
+        println!("Could not read file: {}", infile);
     }
 }
 
