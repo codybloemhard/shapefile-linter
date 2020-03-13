@@ -27,6 +27,10 @@ fn main() {
         let ranges = compress_doubles_stats(&shapezs);
         let (mx,rx,my,ry)= ranges;
         println!("minx: {}, rangex:{}, miny: {}, rangey: {}", mx, rx, my, ry);
+        let shapesrange = compress_shapes_stats(&shapezs);
+        println!("shaperangex: {}, shaperangey: {}", shapesrange.0, shapesrange.1);
+        let counts = compress_repeated_points_in_lines_stats(&shapezs);
+        println!("total: {}, repeated: {}", counts.0, counts.1);
         let target = target_compression_type(ranges);
         println!("target {}", target.to_string());
         let mut buffer = Vec::new();
@@ -110,6 +114,44 @@ fn compress_doubles_stats(shapezs: &Vec<ShapeZ<f64>>) -> Ranges{
         }
     }
     (xmin, xmax - xmin, ymin, ymax - ymin)
+}
+
+fn compress_shapes_stats(shapezs: &Vec<ShapeZ<f64>>) -> (u64,u64){
+    let mut rangex = std::u64::MIN;
+    let mut rangey = std::u64::MIN;
+    for shape in shapezs{
+        let mut xmin = std::u64::MAX;
+        let mut xmax = std::u64::MIN;
+        let mut ymin = std::u64::MAX;
+        let mut ymax = std::u64::MIN;
+        for p in &shape.points{
+            let i0 = p.0 as u64;
+            let i1 = p.1 as u64;
+            xmax = xmax.max(i0);
+            ymax = ymax.max(i1);
+            xmin = xmin.min(i0);
+            ymin = ymin.min(i1);
+        }
+        rangex = rangex.max(xmax - xmin);
+        rangey = rangey.max(ymax - ymin);
+    }
+    (rangex,rangey)
+}
+
+fn compress_repeated_points_in_lines_stats(shapezs: &Vec<ShapeZ<f64>>) -> (usize,usize){
+    let mut points = 0;
+    let mut repeated = 0;
+    for shape in shapezs{
+        if shape.points.is_empty() { continue; }
+        let mut last = &shape.points[0];
+        for p in shape.points.iter().skip(1){
+            if p == last{
+                repeated += 1;
+            }
+        }
+        points += shape.points.len();
+    }
+    (points,repeated)
 }
 
 #[derive(Copy,Clone)]
