@@ -1,0 +1,21 @@
+// Object, read in all datatypes after each other in the order that they are writtin in this file.
+// Has no extra data.
+{
+    //name: datatype
+    positionX: u16,
+    //The name is just for these docs and is not in the file and does not need to be read in
+    //The datatype says what kind of data it is.
+    //u8,u16,u32,u64: unsigned int, 8,16,32, or 64 bits
+    //f32,f64: floats, either 32 or 64 bits
+}
+// This is an array of u16
+// Can have a primitive type like u32 etc or an object { ...  }
+[u16]
+[{x: u32, y: u32}]
+/*
+Before each array, a u64 must be read that contains the length in elements.
+This lenght is always there and not written down in the specs.
+The real data looks like this(example):
+len: u64
+[u16]
+*/

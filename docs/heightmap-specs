@@ -1,0 +1,15 @@
+mx: u64, //Global x offset
+my: u64, //Global y offset
+[
+    {
+        z: f64, //Height of this shape
+        bb0: (f64,f64,f64), //Min boundingbox
+        bb1: (f64,f64,f64), //Max boundingbox
+        points: [(u16,u16)], //All points
+    }
+]
+/*
+for each point position, you need to add up the mx to the x and the my to the y to
+get the final point position.
+All other values(z,boudingboxes) come as f64 and are as they come.
+*/
