@@ -116,14 +116,14 @@ pub fn compress_heightmap(shapes: Vec<Shape>, logger: &mut Logger)
                     continue;
                 }
                 if polylinez.points.is_empty(){
-                    println!("Warning: skipped shape, 0 points!");
+                    logger.log(Issue::EmptyShape);
                     continue;
                 }
                 let mut npoints = Vec::new();
                 let z = polylinez.points[0].z;
                 for point in polylinez.points {
                     if point.z != z{
-                        logger.log(Issue::TWO_PLUS_Z_IN_HEIGHTLINE);
+                        logger.log(Issue::TwoPlusZInHeightline);
                         continue 'outer;
                     }
                     npoints.push((point.x,point.y));
@@ -135,7 +135,7 @@ pub fn compress_heightmap(shapes: Vec<Shape>, logger: &mut Logger)
                     bb,
                 });
             },
-            _ => { println!("Bruh"); }
+            _ => { logger.log(Issue::UnsupportedShapeForHeightmap); }
         }
     }
     shapezs
