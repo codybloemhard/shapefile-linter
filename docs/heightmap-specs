@@ -1,5 +1,7 @@
 mx: u64, //Global x offset
 my: u64, //Global y offset
+bmin: (u16,u16,u16), //Global bounding box min
+bmax: (u16,u16,u16), //Global bounding box max
 [
     {
         z: u16, //Height of this shape
