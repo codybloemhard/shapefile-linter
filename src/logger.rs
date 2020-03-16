@@ -3,7 +3,9 @@ use std::collections::HashMap;
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub enum Issue{
     Message(String),
-    TWO_PLUS_Z_IN_HEIGHTLINE,
+    TwoPlusZInHeightline,
+    UnsupportedShapeForHeightmap,
+    EmptyShape,
 }
 
 pub struct Logger{
@@ -21,11 +23,9 @@ impl Logger{
         match issue{
             Issue::Message(string) => { println!("{}", string); },
             x => {
-                let res = self.issues.get(&x);
-                match res{
-                    Some(n) => { self.issues.insert(x, n + 1); },
-                    None => { self.issues.insert(x, 1); },
-                }
+                let res = if let Some(n) = self.issues.get(&x){ *n + 1 }
+                else { 1 };
+                self.issues.insert(x, res);
             }
         }
     }
@@ -34,8 +34,12 @@ impl Logger{
         for (issue, count) in self.issues.clone(){
             match issue{
                 Issue::Message(_) => {},
-                Issue::TWO_PLUS_Z_IN_HEIGHTLINE =>
+                Issue::TwoPlusZInHeightline =>
                     println!("({} times) Heightline consists of multiple Z values!", count),
+                Issue::UnsupportedShapeForHeightmap =>
+                    println!("({} times) Unsupported shape for heightmap!", count),
+                Issue::EmptyShape =>
+                    println!("({} times) Empty shape!", count),
             }
         }
     }
