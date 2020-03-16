@@ -29,7 +29,7 @@ fn main() {
     if let Ok(shapes) = shapefile::read(infile.clone()){
         println!("Read file \"{}\": {} ms", infile, timer.elapsed().as_millis());
         println!("Shapes: {}", shapes.len());
-        let shapezs = compress_heightmap(shapes);
+        let mut shapezs = compress_heightmap(shapes);
         println!("Compressed: {} ms", timer.elapsed().as_millis());
         let ranges = compress_doubles_stats(&shapezs);
         let (mx,rx,my,ry)= ranges;
@@ -44,10 +44,26 @@ fn main() {
         mx.into_buffer(&mut buffer);
         my.into_buffer(&mut buffer);
         match target{
-            CompTarget::U8 => compress_shapez_into::<u8>(shapezs, ranges).into_buffer(&mut buffer),
-            CompTarget::U16 => compress_shapez_into::<u16>(shapezs, ranges).into_buffer(&mut buffer),
-            CompTarget::U32 => compress_shapez_into::<u32>(shapezs, ranges).into_buffer(&mut buffer),
-            CompTarget::NONE => shapezs.into_buffer(&mut buffer),
+            CompTarget::U8 => {
+                let mut ns = compress_shapez_into::<u8>(shapezs, ranges);
+                let bb = set_bb(&mut ns);
+                bb.into_buffer(&mut buffer);
+                ns.into_buffer(&mut buffer)},
+            CompTarget::U16 => {
+                let mut ns = compress_shapez_into::<u16>(shapezs, ranges);
+                let bb = set_bb(&mut ns);
+                bb.into_buffer(&mut buffer);
+                ns.into_buffer(&mut buffer)},
+            CompTarget::U32 => {
+                let mut ns = compress_shapez_into::<u32>(shapezs, ranges);
+                let bb = set_bb(&mut ns);
+                bb.into_buffer(&mut buffer);
+                ns.into_buffer(&mut buffer)},
+            CompTarget::NONE => {
+                let bb = set_bb(&mut shapezs);
+                bb.into_buffer(&mut buffer);
+                shapezs.into_buffer(&mut buffer);
+                },
         }
         println!("Bufferized: {} ms", timer.elapsed().as_millis());
         let ok = buffer_write_file(&Path::new(&outfile), &buffer);

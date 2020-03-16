@@ -1,13 +1,13 @@
 use bin_buffer::*;
 
 pub type P2<T> = (T,T);
-pub type P3 = (f64,f64,f64);
+pub type P3<T> = (T,T,T);
 
 #[derive(Clone)]
 pub struct ShapeZ<T>{
     pub points: Vec<P2<T>>,
-    pub z: f64,
-    pub bb: (P3,P3),
+    pub z: T,
+    pub bb: (P3<T>,P3<T>),
 }
 
 impl<T: Bufferable + Clone> Bufferable for ShapeZ<T>{
@@ -23,11 +23,11 @@ impl<T: Bufferable + Clone> Bufferable for ShapeZ<T>{
     }
 
     fn from_buffer(buf: &mut ReadBuffer) -> Option<Self>{
-        let z = if let Some(wz) = f64::from_buffer(buf){ wz }
+        let z = if let Some(wz) = T::from_buffer(buf){ wz }
         else { return Option::None; };
-        let bb0 = if let Some(wbb0) = <P3>::from_buffer(buf){ wbb0 }
+        let bb0 = if let Some(wbb0) = <P3<T>>::from_buffer(buf){ wbb0 }
         else { return Option::None; };
-        let bb1 = if let Some(wbb1) = <P3>::from_buffer(buf){ wbb1 }
+        let bb1 = if let Some(wbb1) = <P3<T>>::from_buffer(buf){ wbb1 }
         else { return Option::None; };
         let len = if let Some(wlen) = u64::from_buffer(buf){ wlen }
         else { return Option::None; };
