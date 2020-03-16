@@ -3,6 +3,7 @@ use shapefile::*;
 
 use crate::data::{ShapeZ,P3};
 use crate::info::Ranges;
+use crate::logger::*;
 
 pub trait FromU64{
     fn from(x: u64) -> Self;
@@ -104,7 +105,8 @@ pub fn set_bb<T: MinMax + Copy>
     ((gminx,gminy,gminz),(gmaxx,gmaxy,gmaxz))
 }
 
-pub fn compress_heightmap(shapes: Vec<Shape>) -> Vec<ShapeZ<f64>>{
+pub fn compress_heightmap(shapes: Vec<Shape>, logger: &mut Logger)
+    -> Vec<ShapeZ<f64>>{
     let mut shapezs = Vec::new();
     'outer: for shape in shapes{
         match shape {
@@ -121,7 +123,7 @@ pub fn compress_heightmap(shapes: Vec<Shape>) -> Vec<ShapeZ<f64>>{
                 let z = polylinez.points[0].z;
                 for point in polylinez.points {
                     if point.z != z{
-                        println!("Warning: skipped shape, not all z equal!");
+                        logger.log(Issue::TWO_PLUS_Z_IN_HEIGHTLINE);
                         continue 'outer;
                     }
                     npoints.push((point.x,point.y));

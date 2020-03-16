@@ -9,10 +9,12 @@ use std::time::Instant;
 pub mod data;
 pub mod info;
 pub mod compress;
+pub mod logger;
 
 use data::*;
 use info::*;
 use compress::*;
+use logger::*;
 
 fn main() {
     let args = lapp::parse_args("
@@ -24,12 +26,14 @@ fn main() {
     let infile = args.get_string("inputfile");
     let outfile = args.get_string("outputfile");
 
+    let mut logger = Logger::new();
+
     println!("Shapefile processor...");
     let timer = Instant::now();
     if let Ok(shapes) = shapefile::read(infile.clone()){
         println!("Read file \"{}\": {} ms", infile, timer.elapsed().as_millis());
         println!("Shapes: {}", shapes.len());
-        let mut shapezs = compress_heightmap(shapes);
+        let mut shapezs = compress_heightmap(shapes, &mut logger);
         println!("Compressed: {} ms", timer.elapsed().as_millis());
         let ranges = compress_doubles_stats(&shapezs);
         let (mx,rx,my,ry)= ranges;
@@ -69,6 +73,7 @@ fn main() {
         let ok = buffer_write_file(&Path::new(&outfile), &buffer);
         println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
                  timer.elapsed().as_millis());
+        logger.report();
     }else{
         println!("Could not read file: {}", infile);
     }
