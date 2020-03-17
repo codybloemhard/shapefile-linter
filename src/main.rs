@@ -45,29 +45,27 @@ fn main() {
         let target = target_compression_type(ranges);
         println!("target {}", target.to_string());
         let mut buffer = Vec::new();
-        mx.into_buffer(&mut buffer);
-        my.into_buffer(&mut buffer);
+        (mx,my).into_buffer(&mut buffer);
+        macro_rules! TargetIntoBuffer {
+            ($ttype:ident,$buffer:ident,$shapezs:ident,$ranges:ident) => {
+                let mut ns = compress_shapez_into::<$ttype>($shapezs, $ranges);
+                let bb = set_bb(&mut ns);
+                bb.into_buffer(&mut $buffer);
+                ns.into_buffer(&mut $buffer);
+            };
+        }
         match target{
-            CompTarget::U8 => {
-                let mut ns = compress_shapez_into::<u8>(shapezs, ranges);
-                let bb = set_bb(&mut ns);
-                bb.into_buffer(&mut buffer);
-                ns.into_buffer(&mut buffer)},
-            CompTarget::U16 => {
-                let mut ns = compress_shapez_into::<u16>(shapezs, ranges);
-                let bb = set_bb(&mut ns);
-                bb.into_buffer(&mut buffer);
-                ns.into_buffer(&mut buffer)},
-            CompTarget::U32 => {
-                let mut ns = compress_shapez_into::<u32>(shapezs, ranges);
-                let bb = set_bb(&mut ns);
-                bb.into_buffer(&mut buffer);
-                ns.into_buffer(&mut buffer)},
+            CompTarget::U8 =>
+                {TargetIntoBuffer!(u8,buffer,shapezs,ranges);},
+            CompTarget::U16 =>
+                {TargetIntoBuffer!(u16,buffer,shapezs,ranges);},
+            CompTarget::U32 =>
+                {TargetIntoBuffer!(u32,buffer,shapezs,ranges);},
             CompTarget::NONE => {
                 let bb = set_bb(&mut shapezs);
                 bb.into_buffer(&mut buffer);
                 shapezs.into_buffer(&mut buffer);
-                },
+            },
         }
         println!("Bufferized: {} ms", timer.elapsed().as_millis());
         let ok = buffer_write_file(&Path::new(&outfile), &buffer);
