@@ -74,12 +74,25 @@ impl CompTarget{
     }
 }
 
-pub fn target_compression_type((_,rx,_,ry): Ranges) -> CompTarget{
+pub fn target_compression_type((_,rx,_,ry): Ranges) -> (u64, CompTarget){
     fn get_target(range: u64) -> CompTarget{
         if range < std::u8::MAX.into(){ CompTarget::U8 }
         else if range < std::u16::MAX.into(){ CompTarget::U16 }
         else if range < std::u32::MAX.into(){ CompTarget::U32 }
         else {CompTarget::NONE }
     }
-    get_target(rx.max(ry))
+    let max = rx.max(ry);
+    (max,get_target(max))
+}
+
+pub fn target_multiplier(mr: u64, target: CompTarget) -> (u64,f64){
+    let max: u64 = match target{
+        CompTarget::U8 => std::u8::MAX.into(),
+        CompTarget::U16 => std::u16::MAX.into(),
+        CompTarget::U32 => std::u32::MAX.into(),
+        _ => std::u64::MAX.into(),
+    };
+    let m = max / mr;
+    if m < 1 { panic!("Error: target_multiplier smaller than one!"); }
+    (m,(m * mr) as f64 / max as f64)
 }

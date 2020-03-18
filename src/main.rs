@@ -42,8 +42,10 @@ fn main() {
         println!("shaperangex: {}, shaperangey: {}", shapesrange.0, shapesrange.1);
         let counts = compress_repeated_points_in_lines_stats(&shapezs);
         println!("total: {}, repeated: {}", counts.0, counts.1);
-        let target = target_compression_type(ranges);
-        println!("target {}", target.to_string());
+        let (range,target)= target_compression_type(ranges);
+        let (multi,usage) = target_multiplier(range,target);
+        println!("target {} with multiplier {} using {} of range",
+                 target.to_string(), multi, usage);
         let mut buffer = Vec::new();
         (mx,my).into_buffer(&mut buffer);
         macro_rules! TargetIntoBuffer {
