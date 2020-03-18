@@ -47,22 +47,22 @@ fn main() {
         println!("target {} with multiplier {} using {} of range",
                  target.to_string(), multi, usage);
         let mut buffer = Vec::new();
-        (mx,my).into_buffer(&mut buffer);
+        (mx,my,multi).into_buffer(&mut buffer);
         macro_rules! TargetIntoBuffer {
-            ($ttype:ident,$buffer:ident,$shapezs:ident,$ranges:ident) => {
-                let mut ns = compress_shapez_into::<$ttype>($shapezs, $ranges);
+            ($ttype:ident) => {
+                let mut ns = compress_shapez_into::<$ttype>(shapezs,mx,my,multi);
                 let bb = set_bb(&mut ns);
-                bb.into_buffer(&mut $buffer);
-                ns.into_buffer(&mut $buffer);
+                bb.into_buffer(&mut buffer);
+                ns.into_buffer(&mut buffer);
             };
         }
         match target{
             CompTarget::U8 =>
-                {TargetIntoBuffer!(u8,buffer,shapezs,ranges);},
+                {TargetIntoBuffer!(u8);},
             CompTarget::U16 =>
-                {TargetIntoBuffer!(u16,buffer,shapezs,ranges);},
+                {TargetIntoBuffer!(u16);},
             CompTarget::U32 =>
-                {TargetIntoBuffer!(u32,buffer,shapezs,ranges);},
+                {TargetIntoBuffer!(u32);},
             CompTarget::NONE => {
                 let bb = set_bb(&mut shapezs);
                 bb.into_buffer(&mut buffer);

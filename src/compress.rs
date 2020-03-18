@@ -2,7 +2,6 @@ use bin_buffer::*;
 use shapefile::*;
 
 use crate::data::{ShapeZ,P3};
-use crate::info::Ranges;
 use crate::logger::*;
 
 pub trait FromU64{
@@ -13,13 +12,13 @@ impl FromU64 for u8{ fn from(x: u64) -> Self{ x as u8 } }
 impl FromU64 for u16{ fn from(x: u64) -> Self{ x as u16 } }
 impl FromU64 for u32{ fn from(x: u64) -> Self{ x as u32 } }
 
-pub trait OffsetFromU64{
-    fn offset(x: f64, o: u64) -> Self;
+pub trait OffScaleFromU64{
+    fn offscale(x: f64, o: u64, m: u64) -> Self;
 }
 
-impl<T: FromU64> OffsetFromU64 for T{
-    fn offset(x: f64, o: u64) -> Self{
-        T::from((x as u64) - o)
+impl<T: FromU64> OffScaleFromU64 for T{
+    fn offscale(x: f64, o: u64, m: u64) -> Self{
+        T::from(((x * m as f64) as u64) - o)
     }
 }
 
@@ -31,13 +30,13 @@ fn bb_to_t<T: FromU64>(bb: (P3<f64>,P3<f64>)) -> (P3<T>,P3<T>){
 }
 
 pub fn compress_shapez_into<T: Bufferable + FromU64>
-    (shapezs: Vec<ShapeZ<f64>>, (mx,_,my,_): Ranges) -> Vec<ShapeZ<T>>{
+    (shapezs: Vec<ShapeZ<f64>>, mx: u64, my: u64, multi: u64) -> Vec<ShapeZ<T>>{
     let mut nshapezs = Vec::new();
     for shape in shapezs{
         let mut vec = Vec::new();
         for (x,y) in shape.points{
-            let xx = T::offset(x, mx);
-            let yy = T::offset(y, my);
+            let xx = T::offscale(x, mx, multi);
+            let yy = T::offscale(y, my, multi);
             vec.push((xx,yy));
         }
         nshapezs.push(ShapeZ{
