@@ -18,7 +18,7 @@ pub trait OffScaleFromU64{
 
 impl<T: FromU64> OffScaleFromU64 for T{
     fn offscale(x: f64, o: u64, m: u64) -> Self{
-        T::from(((x * m as f64) as u64) - o)
+        T::from(((x - o as f64) * m as f64).round() as u64)
     }
 }
 

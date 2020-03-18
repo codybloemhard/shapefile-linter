@@ -1,5 +1,6 @@
 mx: u64, //Global x offset
 my: u64, //Global y offset
+multi: u64, //Global multiplier
 bmin: (u16,u16,u16), //Global bounding box min
 bmax: (u16,u16,u16), //Global bounding box max
 [
@@ -11,7 +12,8 @@ bmax: (u16,u16,u16), //Global bounding box max
     }
 ]
 /*
-for each point position, you need to add up the mx to the x and the my to the y to
+for each point position, you need to divide by multi and then
+add up the mx to the x and the my to the y to
 get the final point position.
-This is also true for z and boundingbox.
+This is also true for boundingboxes but not for z.
 */
