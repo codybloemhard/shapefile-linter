@@ -11,7 +11,6 @@ pub mod info;
 pub mod compress;
 pub mod logger;
 
-use data::*;
 use info::*;
 use compress::*;
 use logger::*;
@@ -26,7 +25,7 @@ fn main() {
     let infile = args.get_string("inputfile");
     let outfile = args.get_string("outputfile");
 
-    let mut logger = Logger::new();
+    let mut logger = Logger::default();
 
     println!("Shapefile processor...");
     let timer = Instant::now();

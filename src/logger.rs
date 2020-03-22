@@ -8,17 +8,12 @@ pub enum Issue{
     EmptyShape,
 }
 
+#[derive(Default)]
 pub struct Logger{
     issues: HashMap<Issue,usize>,
 }
 
 impl Logger{
-    pub fn new() -> Self{
-        Logger{
-            issues: HashMap::new(),
-        }
-    }
-
     pub fn log(&mut self, issue: Issue){
         match issue{
             Issue::Message(string) => { println!("{}", string); },

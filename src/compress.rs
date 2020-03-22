@@ -121,7 +121,7 @@ pub fn compress_heightmap(shapes: Vec<Shape>, logger: &mut Logger)
                 let mut npoints = Vec::new();
                 let z = polylinez.points[0].z;
                 for point in polylinez.points {
-                    if point.z != z{
+                    if (point.z - z).abs() > std::f64::EPSILON{
                         logger.log(Issue::TwoPlusZInHeightline);
                         continue 'outer;
                     }

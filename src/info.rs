@@ -2,7 +2,7 @@ use super::data::ShapeZ;
 
 pub type Ranges = (u64,u64,u64,u64);
 
-pub fn compress_doubles_stats(shapezs: &Vec<ShapeZ<f64>>) -> Ranges{
+pub fn compress_doubles_stats(shapezs: &[ShapeZ<f64>]) -> Ranges{
     let mut xmin = std::u64::MAX;
     let mut xmax = std::u64::MIN;
     let mut ymin = std::u64::MAX;
@@ -20,7 +20,7 @@ pub fn compress_doubles_stats(shapezs: &Vec<ShapeZ<f64>>) -> Ranges{
     (xmin, xmax - xmin, ymin, ymax - ymin)
 }
 
-pub fn compress_shapes_stats(shapezs: &Vec<ShapeZ<f64>>) -> (u64,u64){
+pub fn compress_shapes_stats(shapezs: &[ShapeZ<f64>]) -> (u64,u64){
     let mut rangex = std::u64::MIN;
     let mut rangey = std::u64::MIN;
     for shape in shapezs{
@@ -42,12 +42,12 @@ pub fn compress_shapes_stats(shapezs: &Vec<ShapeZ<f64>>) -> (u64,u64){
     (rangex,rangey)
 }
 
-pub fn compress_repeated_points_in_lines_stats(shapezs: &Vec<ShapeZ<f64>>) -> (usize,usize){
+pub fn compress_repeated_points_in_lines_stats(shapezs: &[ShapeZ<f64>]) -> (usize,usize){
     let mut points = 0;
     let mut repeated = 0;
     for shape in shapezs{
         if shape.points.is_empty() { continue; }
-        let mut last = &shape.points[0];
+        let last = &shape.points[0];
         for p in shape.points.iter().skip(1){
             if p == last{
                 repeated += 1;
@@ -63,14 +63,14 @@ pub enum CompTarget{
     U8,U16,U32,NONE,
 }
 
-impl CompTarget{
-    pub fn to_string(self) -> String{
-        match self{
+impl std::fmt::Display for CompTarget{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result{
+        write!(f,"{}",match self{
             Self::U8 => "u8",
             Self::U16 => "u16",
             Self::U32 => "u32",
             Self::NONE => "none",
-        }.to_string()
+        })
     }
 }
 
@@ -90,7 +90,7 @@ pub fn target_multiplier(mr: u64, target: CompTarget) -> (u64,f64){
         CompTarget::U8 => std::u8::MAX.into(),
         CompTarget::U16 => std::u16::MAX.into(),
         CompTarget::U32 => std::u32::MAX.into(),
-        _ => std::u64::MAX.into(),
+        _ => std::u64::MAX,
     };
     let m = max / mr;
     if m < 1 { panic!("Error: target_multiplier smaller than one!"); }
