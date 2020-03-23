@@ -1,4 +1,5 @@
 use super::data::*;
+use shapefile::*;
 
 pub type Ranges = (u64,u64,u64,u64);
 
@@ -109,4 +110,48 @@ pub fn print_split_content((ps,pms,pzs,pls,plms,plzs,mps,mpms,mpzs):
     println!("Multipoint's: {}", mps.len());
     println!("MultipointM's: {}", mpms.len());
     println!("MultipointZ's: {}", mpzs.len());
+}
+
+pub fn print_shape_content(shapes: &[Shape]){
+    let mut p = 0; let mut pm = 0; let mut pz = 0;
+    let mut pl = 0; let mut plp = 0; let mut ps = 0;
+    let mut plm = 0; let mut plmp = 0; let mut plz = 0;
+    let mut plzp = 0; let mut pg = 0; let mut pgp = 0;
+    let mut pgm = 0; let mut pgmp = 0; let mut pgz = 0;
+    let mut pgzp = 0; let mut mp = 0; let mut mpm = 0;
+    let mut mpz = 0; let mut ma = 0; let mut map = 0;
+    let mut ns = 0;
+    for shape in shapes{
+        match shape{
+            Shape::NullShape => { ns += 1; }
+            Shape::Point(_) => { p += 1; },
+            Shape::PointM(_) => { pm += 1; },
+            Shape::PointZ(_) => { pz += 1; },
+            Shape::Polyline(x) => { pl += 1; plp += x.parts().len(); ps += x.total_point_count(); },
+            Shape::PolylineM(x) => { plm += 1; plmp += x.parts().len(); ps += x.total_point_count(); },
+            Shape::PolylineZ(x) => { plz += 1; plzp += x.parts().len(); ps += x.total_point_count(); },
+            Shape::Polygon(x) => { pg += 1; pgp += x.rings().len(); ps += x.total_point_count(); },
+            Shape::PolygonM(x) => { pgm += 1; pgmp += x.rings().len(); ps += x.total_point_count(); },
+            Shape::PolygonZ(x) => { pgz += 1; pgzp += x.rings().len(); ps += x.total_point_count(); },
+            Shape::Multipoint(x) => { mp += 1; ps += x.points().len(); },
+            Shape::MultipointM(x) => { mpm += 1; ps += x.points().len(); },
+            Shape::MultipointZ(x) => { mpz += 1; ps += x.points().len(); },
+            Shape::Multipatch(x) => { ma += 1; map += x.patches().len(); ps += x.total_point_count(); },
+        }
+    }
+    println!("Total points: {}", ps + p + pm + pz);
+    println!("Null shapes: {}", ns);
+    println!("Point's: {}", p);
+    println!("PointM's: {}", pm);
+    println!("PointZ's: {}", pz);
+    println!("Polyline's: {}, with total parts: {}", pl, plp);
+    println!("PolylineM's: {}, with total parts: {}", plm, plmp);
+    println!("PolylineZ's: {}, with total parts: {}", plz, plzp);
+    println!("Polygon's: {}, with total rings: {}", pg, pgp);
+    println!("PolygonM's: {}, with total rings: {}", pgm, pgmp);
+    println!("PolygonZ's: {}, with total rings: {}", pgz, pgzp);
+    println!("Multipoint's: {}", mp);
+    println!("MultipointM's: {}", mpm);
+    println!("MultipointZ's: {}", mpz);
+    println!("Multipatch's: {}, with patches: {}", ma, map);
 }
