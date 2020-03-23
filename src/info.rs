@@ -1,4 +1,4 @@
-use super::data::ShapeZ;
+use super::data::*;
 
 pub type Ranges = (u64,u64,u64,u64);
 
@@ -95,4 +95,18 @@ pub fn target_multiplier(mr: u64, target: CompTarget) -> (u64,f64){
     let m = max / mr;
     if m < 1 { panic!("Error: target_multiplier smaller than one!"); }
     (m,(m * mr) as f64 / max as f64)
+}
+
+pub fn print_split_content((ps,pms,pzs,pls,plms,plzs,mps,mpms,mpzs):
+    &(VP2,VP3,VP4,VvP2,VvP3,VvP4,VvP2,VvP3,VvP4)){
+    println!("How much of everything is present in this shapefile: ");
+    println!("Point's: {}", ps.len());
+    println!("PointM's: {}", pms.len());
+    println!("PointZ's: {}", pzs.len());
+    println!("Polyline's: {}", pls.len());
+    println!("PolylineM's: {}", plms.len());
+    println!("PolylineZ's: {}", plzs.len());
+    println!("Multipoint's: {}", mps.len());
+    println!("MultipointM's: {}", mpms.len());
+    println!("MultipointZ's: {}", mpzs.len());
 }

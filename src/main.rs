@@ -20,11 +20,13 @@ fn main() {
     let args = lapp::parse_args("
     Preprocess shapefiles into more efficient files.
       <inputfile> (string) input file name
-      <outputfile> (string) output file name"
+      <outputfile> (string) output file name
+      <mode> (string) mode of using"
     );
 
     let infile = args.get_string("inputfile");
     let outfile = args.get_string("outputfile");
+    let mode = args.get_string("mode");
 
     let mut logger = Logger::default();
 
@@ -33,7 +35,9 @@ fn main() {
     if let Ok(shapes) = shapefile::read(infile.clone()){
         println!("Read file \"{}\": {} ms", infile, timer.elapsed().as_millis());
         println!("Shapes: {}", shapes.len());
-        let plinezs = split(shapes).5;
+        let all = split(shapes, &mut logger);
+        print_split_content(&all);
+        let plinezs = all.5;
         let mut shapezs = compress_heightmap(plinezs, &mut logger);
         println!("Compressed: {} ms", timer.elapsed().as_millis());
         let ranges = compress_doubles_stats(&shapezs);

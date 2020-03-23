@@ -1,9 +1,14 @@
 use bin_buffer::*;
 use shapefile::*;
+use crate::logger::*;
 
 pub type P2<T> = (T,T);
 pub type P3<T> = (T,T,T);
 pub type P4<T> = (T,T,T,T);
+
+pub type VP2 = Vec<P2<f64>>;
+pub type VP3 = Vec<P3<f64>>;
+pub type VP4 = Vec<P4<f64>>;
 
 pub type Vvec<T> = Vec<Vec<T>>;
 pub type VvP2 = Vvec<P2<f64>>;
@@ -52,8 +57,8 @@ impl<T: Bufferable + Clone> Bufferable for ShapeZ<T>{
     }
 }
 
-pub fn split(shapes: Vec<Shape>)
-    -> (Vec<P2<f64>>,Vec<P3<f64>>,Vec<P4<f64>>,VvP2,VvP3,VvP4,VvP2,VvP3,VvP4) {
+pub fn split(shapes: Vec<Shape>, logger: &mut Logger)
+    -> (VP2,VP3,VP4,VvP2,VvP3,VvP4,VvP2,VvP3,VvP4) {
     let mut points = Vec::new();
     let mut pointms = Vec::new();
     let mut pointzs = Vec::new();
@@ -75,7 +80,9 @@ pub fn split(shapes: Vec<Shape>)
             Shape::Multipoint(mp) => { mpoints.push(mp.into_inner()) },
             Shape::MultipointM(mp) => { mpointms.push(mp.into_inner()) },
             Shape::MultipointZ(mp) => { mpointzs.push(mp.into_inner()) },
-            _ => {  }
+            _ => {
+                logger.log(Issue::UnsupportedShape);
+            }
         }
     }
     let mpoints: VvP2 = mpoints.iter().map(|x| x.iter().map(|p| (p.x,p.y)).collect()).collect();

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 pub enum Issue{
     Message(String),
     TwoPlusZInHeightline,
-    UnsupportedShapeForHeightmap,
+    UnsupportedShape,
     EmptyShape,
 }
 
@@ -31,8 +31,8 @@ impl Logger{
                 Issue::Message(_) => {},
                 Issue::TwoPlusZInHeightline =>
                     println!("({} times) Heightline consists of multiple Z values!", count),
-                Issue::UnsupportedShapeForHeightmap =>
-                    println!("({} times) Unsupported shape for heightmap!", count),
+                Issue::UnsupportedShape =>
+                    println!("({} times) Currently Unsupported Shape!", count),
                 Issue::EmptyShape =>
                     println!("({} times) Empty shape!", count),
             }
