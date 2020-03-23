@@ -1,7 +1,6 @@
 use bin_buffer::*;
-use shapefile::*;
 
-use crate::data::{ShapeZ,P3};
+use crate::data::{ShapeZ,P3,VvP4};
 use crate::logger::*;
 
 pub trait FromU64{
@@ -104,38 +103,30 @@ pub fn set_bb<T: MinMax + Copy>
     ((gminx,gminy,gminz),(gmaxx,gmaxy,gmaxz))
 }
 
-pub fn compress_heightmap(shapes: Vec<Shape>, logger: &mut Logger)
+pub fn compress_heightmap(shapes: VvP4, logger: &mut Logger)
     -> Vec<ShapeZ<f64>>{
     let mut shapezs = Vec::new();
     'outer: for shape in shapes{
-        match shape {
-            Shape::PolylineZ(polylinez) => {
-                if polylinez.parts.len() > 1{
-                    println!("Warning: skipped shape, more than 1 part!");
-                    continue;
-                }
-                if polylinez.points.is_empty(){
-                    logger.log(Issue::EmptyShape);
-                    continue;
-                }
-                let mut npoints = Vec::new();
-                let z = polylinez.points[0].z;
-                for point in polylinez.points {
-                    if (point.z - z).abs() > std::f64::EPSILON{
-                        logger.log(Issue::TwoPlusZInHeightline);
-                        continue 'outer;
-                    }
-                    npoints.push((point.x,point.y));
-                }
-                let bb = ((0.0,0.0,0.0),(0.0,0.0,0.0));
-                shapezs.push(ShapeZ{
-                    points: npoints,
-                    z,
-                    bb,
-                });
-            },
-            _ => { logger.log(Issue::UnsupportedShapeForHeightmap); }
+        if shape.is_empty(){
+            logger.log(Issue::EmptyShape);
+            continue;
         }
+        let mut npoints = Vec::new();
+        let z = shape[0].2;
+        for point in shape{
+            if (point.2 - z).abs() > std::f64::EPSILON{
+                logger.log(Issue::TwoPlusZInHeightline);
+                continue 'outer;
+            }
+            npoints.push((point.0,point.1));
+        }
+        let bb = ((0.0,0.0,0.0),(0.0,0.0,0.0));
+        shapezs.push(ShapeZ{
+            points: npoints,
+            z,
+            bb,
+        });
     }
     shapezs
 }
+

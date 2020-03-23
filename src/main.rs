@@ -14,6 +14,7 @@ pub mod logger;
 use info::*;
 use compress::*;
 use logger::*;
+use data::*;
 
 fn main() {
     let args = lapp::parse_args("
@@ -32,7 +33,8 @@ fn main() {
     if let Ok(shapes) = shapefile::read(infile.clone()){
         println!("Read file \"{}\": {} ms", infile, timer.elapsed().as_millis());
         println!("Shapes: {}", shapes.len());
-        let mut shapezs = compress_heightmap(shapes, &mut logger);
+        let plinezs = split(shapes).5;
+        let mut shapezs = compress_heightmap(plinezs, &mut logger);
         println!("Compressed: {} ms", timer.elapsed().as_millis());
         let ranges = compress_doubles_stats(&shapezs);
         let (mx,rx,my,ry)= ranges;
@@ -56,12 +58,9 @@ fn main() {
             };
         }
         match target{
-            CompTarget::U8 =>
-                {TargetIntoBuffer!(u8);},
-            CompTarget::U16 =>
-                {TargetIntoBuffer!(u16);},
-            CompTarget::U32 =>
-                {TargetIntoBuffer!(u32);},
+            CompTarget::U8 => { TargetIntoBuffer!(u8); },
+            CompTarget::U16 => { TargetIntoBuffer!(u16); },
+            CompTarget::U32 => { TargetIntoBuffer!(u32); },
             CompTarget::NONE => {
                 let bb = set_bb(&mut shapezs);
                 bb.into_buffer(&mut buffer);
@@ -77,5 +76,4 @@ fn main() {
         println!("Could not read file: {}", infile);
     }
 }
-
 
