@@ -1,6 +1,7 @@
 use bin_buffer::*;
 use shapefile::*;
 use shapefile::record::polygon::GenericPolygon;
+use shapefile::record::polyline::GenericPolyline;
 use crate::logger::*;
 
 pub type P2<T> = (T,T);
@@ -77,42 +78,49 @@ pub fn split(shapes: Vec<Shape>, logger: &mut Logger)
     let mut polys = Vec::new();
     let mut polyms = Vec::new();
     let mut polyzs = Vec::new();
-    fn pt2_to_p2(p: &Point) -> P2<f64> { (p.x,p.y) }
-    fn pt3_to_p3(p: &PointM) -> P3<f64> { (p.x,p.y,p.m) }
-    fn pt4_to_p4(p: &PointZ) -> P4<f64> { (p.x,p.y,p.z,p.m) }
-    fn handle_polygon<PT,F,P>(pg: GenericPolygon<PT>, dst: &mut Vec<(Vvec<P>,Vvec<P>)>, conv: &F)
+    fn tp2(p: &Point) -> P2<f64> { (p.x,p.y) }
+    fn tp3(p: &PointM) -> P3<f64> { (p.x,p.y,p.m) }
+    fn tp4(p: &PointZ) -> P4<f64> { (p.x,p.y,p.z,p.m) }
+    fn handle_polygon<PT,F,P>(pg: GenericPolygon<PT>, dst: &mut Polys<P>, conv: &F)
         where F: Fn(&PT) -> P
     {
         let mut vo: Vvec<P> = Vec::new();
         let mut vi: Vvec<P> = Vec::new();
+        let convert_poly = &|s: &Vec<PT>, d: &mut Vvec<P>| { d.push(s.iter().map(|p| conv(p)).collect()); };
         pg.into_inner().iter().for_each(|x| match x {
-            PolygonRing::Outer(vec) => { vo.push(vec.iter().map(|p| conv(p)).collect()); },
-            PolygonRing::Inner(vec) => { vi.push(vec.iter().map(|p| conv(p)).collect()); },
+            PolygonRing::Outer(vec) => { convert_poly(vec, &mut vo); },
+            PolygonRing::Inner(vec) => { convert_poly(vec, &mut vi); },
         });
         dst.push((vo,vi));
+    }
+    fn convert_polyline<T,P>(pl: GenericPolyline<T>, dst: &mut Vvec<P>, cv: fn(&T) -> P) {
+        pl.into_inner().iter().for_each(|x| dst.push(x.iter().map(|p| cv(p)).collect()));
+    }
+    fn convert_multipoint<T,P>(src: Vec<Vec<T>>, cv: fn(&T) -> P) -> Vvec<P>{
+        src.iter().map(|x| x.iter().map(|p| cv(p)).collect()).collect()
     }
     for shape in shapes{
         match shape{
             Shape::NullShape => {  },
-            Shape::Point(p) => { points.push((p.x,p.y)); },
-            Shape::PointM(p) => { pointms.push((p.x,p.y,p.m)); },
-            Shape::PointZ(p) => { pointzs.push((p.x,p.y,p.z,p.m)); },
-            Shape::Polyline(pl) => { pl.into_inner().iter().for_each(|x| plines.push(x.iter().map(|p| (p.x,p.y)).collect())); },
-            Shape::PolylineM(pl) => { pl.into_inner().iter().for_each(|x| plinems.push(x.iter().map(|p| (p.x,p.y,p.m)).collect())); },
-            Shape::PolylineZ(pl) => { pl.into_inner().iter().for_each(|x| plinezs.push(x.iter().map(|p| (p.x,p.y,p.z,p.m)).collect())); },
+            Shape::Point(p) => { points.push(tp2(&p)); },
+            Shape::PointM(p) => { pointms.push(tp3(&p)); },
+            Shape::PointZ(p) => { pointzs.push(tp4(&p)); },
+            Shape::Polyline(pl) => { convert_polyline(pl, &mut plines, tp2); },
+            Shape::PolylineM(pl) => { convert_polyline(pl, &mut plinems, tp3); },
+            Shape::PolylineZ(pl) => { convert_polyline(pl, &mut plinezs, tp4); },
             Shape::Multipoint(mp) => { mpoints.push(mp.into_inner()) },
             Shape::MultipointM(mp) => { mpointms.push(mp.into_inner()) },
-            Shape::Polygon(pg) => { handle_polygon(pg, &mut polys, &pt2_to_p2); },
-            Shape::PolygonM(pg) => { handle_polygon(pg, &mut polyms, &pt3_to_p3); },
-            Shape::PolygonZ(pg) => { handle_polygon(pg, &mut polyzs, &pt4_to_p4); },
+            Shape::Polygon(pg) => { handle_polygon(pg, &mut polys, &tp2); },
+            Shape::PolygonM(pg) => { handle_polygon(pg, &mut polyms, &tp3); },
+            Shape::PolygonZ(pg) => { handle_polygon(pg, &mut polyzs, &tp4); },
             Shape::MultipointZ(mp) => { mpointzs.push(mp.into_inner()) },
             _ => {
                 logger.log(Issue::UnsupportedShape);
             }
         }
     }
-    let mpoints: VvP2 = mpoints.iter().map(|x| x.iter().map(|p| (p.x,p.y)).collect()).collect();
-    let mpointms: VvP3 = mpointms.iter().map(|x| x.iter().map(|p| (p.x,p.y,p.m)).collect()).collect();
-    let mpointzs: VvP4 = mpointzs.iter().map(|x| x.iter().map(|p| (p.x,p.y,p.z,p.m)).collect()).collect();
+    let mpoints = convert_multipoint(mpoints, tp2);
+    let mpointms = convert_multipoint(mpointms, tp3);
+    let mpointzs = convert_multipoint(mpointzs, tp4);
     (points,pointms,pointzs,plines,plinems,plinezs,mpoints,mpointms,mpointzs,polys,polyms,polyzs)
 }
