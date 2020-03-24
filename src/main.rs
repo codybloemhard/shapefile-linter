@@ -20,12 +20,12 @@ fn main() {
     let args = lapp::parse_args("
     Preprocess shapefiles into more efficient files.
       <inputfile> (string) input file name
-      <outputfile> (string) output file name
-      <mode> (string) mode of using"
+      --output (default outp) (string) define output file
+      --mode (default info) (string) what to do"
     );
 
     let infile = args.get_string("inputfile");
-    let outfile = args.get_string("outputfile");
+    let outfile = args.get_string("output");
     let mode = args.get_string("mode");
 
     let mut logger = Logger::default();

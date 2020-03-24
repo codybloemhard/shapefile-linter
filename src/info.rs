@@ -98,8 +98,7 @@ pub fn target_multiplier(mr: u64, target: CompTarget) -> (u64,f64){
     (m,(m * mr) as f64 / max as f64)
 }
 
-pub fn print_split_content((ps,pms,pzs,pls,plms,plzs,mps,mpms,mpzs,pgs,pgms,pgzs):
-    &(VP2,VP3,VP4,VvP2,VvP3,VvP4,VvP2,VvP3,VvP4,PolysP2,PolysP3,PolysP4)){
+pub fn print_split_content((ps,pms,pzs,pls,plms,plzs,mps,mpms,mpzs,pgs,pgms,pgzs): &Splitted){
     println!("How much of everything is present in this shapefile: ");
     println!("Point's: {}", ps.len());
     println!("PointM's: {}", pms.len());

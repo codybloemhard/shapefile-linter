@@ -63,9 +63,9 @@ pub type Polys<T> = Vec<(Vvec<T>,Vvec<T>)>;
 pub type PolysP2 = Polys<P2<f64>>;
 pub type PolysP3 = Polys<P3<f64>>;
 pub type PolysP4 = Polys<P4<f64>>;
+pub type Splitted = (VP2,VP3,VP4,VvP2,VvP3,VvP4,VvP2,VvP3,VvP4,PolysP2,PolysP3,PolysP4);
 
-pub fn split(shapes: Vec<Shape>, logger: &mut Logger)
-    -> (VP2,VP3,VP4,VvP2,VvP3,VvP4,VvP2,VvP3,VvP4,PolysP2,PolysP3,PolysP4) {
+pub fn split(shapes: Vec<Shape>, logger: &mut Logger) -> Splitted{
     let mut points = Vec::new();
     let mut pointms = Vec::new();
     let mut pointzs = Vec::new();
