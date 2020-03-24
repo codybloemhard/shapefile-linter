@@ -37,9 +37,10 @@ fn main() {
         println!("Shapes: {}", shapes.len());
         if mode == "info"{
             print_shape_content(&shapes);
+            let splitted = split(shapes, &mut logger);
+            print_split_content(&splitted);
         }else if mode == "height"{
             let all = split(shapes, &mut logger);
-            print_split_content(&all);
             let plinezs = all.5;
             let mut shapezs = compress_heightmap(plinezs, &mut logger);
             println!("Compressed: {} ms", timer.elapsed().as_millis());
