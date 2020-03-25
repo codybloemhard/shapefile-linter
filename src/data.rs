@@ -106,7 +106,7 @@ pub struct PolygonZ<T>{
     pub bb: (P3<T>,P3<T>),
 }
 
-impl<T: Default> PolygonZ<T>{
+impl<T: Default + Copy> PolygonZ<T>{
     pub fn from(raw: Poly<P4<T>>) -> Self{
         let d = T::default();
         Self{
@@ -179,33 +179,42 @@ pub struct PolygonZIter<'a,T>{
 
 impl<'a, T> Iterator for PolygonZIter<'a, T>{
     type Item = &'a P4<T>;
-
+    //Note: this looks very clunky but it this way because the &mut gets in the way of the & if the
+    //closure captures self
     fn next(&mut self) -> Option<Self::Item>{
-        let iter_sub = |sub: Vvec<P4<T>>|{
+        let iter_sub = |sub: &'a Vvec<P4<T>>, mut ind: usize, mut cur: usize|{
             loop{
-                if self.index >= sub.len(){
-                    return Option::None;
+                if ind >= sub.len(){
+                    return (Option::None,ind,cur);
                 }
-                if self.current >= self.index{
-                    self.index += 1;
-                    self.current = 0;
-                }else{
-                    break;
-                }
+                if cur >= ind{
+                    ind += 1;
+                    cur = 0;
+                }else{ break; }
             }
-            let i = self.current;
-            self.current += 1;
-            Option::Some(&sub[self.index][i])
+            let i = cur;
+            cur += 1;
+            (Option::Some(&sub[ind][i]),ind,cur)
         };
-        if self.outer{
-            let res = iter_sub(self.poly.outers);
-            if res.is_some() { res }
-            else{
-                self.outer = false;
-                iter_sub(self.poly.inners)
-            }
-        }else{
-            iter_sub(self.poly.inners)
+        let mut ind = self.index;
+        let mut cur = self.current;
+        let is_inner = !self.outer;
+        if is_inner {
+            let (r,i,c) = iter_sub(&self.poly.inners,ind,cur);
+            self.index = i;
+            self.current = c;
+            return r;
+        }
+        let (r,i,c) = iter_sub(&self.poly.outers, ind, cur);
+        ind = i;
+        cur = c;
+        if r.is_some(){ r }
+        else{
+            self.outer = false;
+            let (r,i,c) = iter_sub(&self.poly.inners, ind, cur);
+            self.index = i;
+            self.current = c;
+            r
         }
     }
 }

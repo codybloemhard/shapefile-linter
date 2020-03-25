@@ -9,4 +9,4 @@ edition = "2018"
 [dependencies]
 lapp = "0.4.0"
 shapefile = "0.2.0"
-bin_buffer = "0.1.5"
+bin_buffer = "0.1.9"
