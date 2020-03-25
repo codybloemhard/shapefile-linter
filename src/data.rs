@@ -17,6 +17,16 @@ pub type VvP2 = Vvec<P2<f64>>;
 pub type VvP3 = Vvec<P3<f64>>;
 pub type VvP4 = Vvec<P4<f64>>;
 
+pub trait HasXy<T>{
+    fn xy(&self) -> (T,T);
+}
+
+impl<T: Copy> HasXy<T> for &(T,T){
+    fn xy(&self) -> (T,T){
+        **self
+    }
+}
+
 #[derive(Clone)]
 pub struct ShapeZ<T>{
     pub points: Vec<P2<T>>,
@@ -59,28 +69,9 @@ impl<T: Bufferable + Clone> Bufferable for ShapeZ<T>{
     }
 }
 
-pub trait HasXy<T>{
-    fn xy(&self) -> (T,T);
-}
-
-impl<T: Copy> HasXy<T> for &(T,T){
-    fn xy(&self) -> (T,T){
-        **self
-    }
-}
-
 pub struct ShapeZIter<'a,T>{
     pub current: usize,
     pub shapez: &'a ShapeZ<T>,
-}
-
-impl<'a, T> ShapeZIter<'a,T>{
-    pub fn from(shapez: &'a ShapeZ<T>) -> ShapeZIter<'a,T>{
-        ShapeZIter{
-            current: 0,
-            shapez,
-        }
-    }
 }
 
 impl<'a, T> Iterator for ShapeZIter<'a, T>{
@@ -108,7 +99,133 @@ impl<'a, T> IntoIterator for &'a ShapeZ<T>{
     }
 }
 
-pub type Polys<T> = Vec<(Vvec<T>,Vvec<T>)>;
+#[derive(Clone)]
+pub struct PolygonZ<T>{
+    pub inners: Vvec<P4<T>>,
+    pub outers: Vvec<P4<T>>,
+    pub bb: (P3<T>,P3<T>),
+}
+
+impl<T: Default> PolygonZ<T>{
+    pub fn from(raw: Poly<P4<T>>) -> Self{
+        let d = T::default();
+        Self{
+            outers: raw.0,
+            inners: raw.1,
+            bb: ((d,d,d),(d,d,d)),
+        }
+    }
+}
+
+impl<T: Bufferable + Clone> Bufferable for PolygonZ<T>{
+    fn into_buffer(self, buf: &mut Buffer){
+        self.bb.0.into_buffer(buf);
+        self.bb.1.into_buffer(buf);
+        self.outers.into_buffer(buf);
+        self.inners.into_buffer(buf);
+    }
+
+    fn copy_into_buffer(&self, buf: &mut Buffer){
+        self.clone().into_buffer(buf);
+    }
+
+    fn from_buffer(buf: &mut ReadBuffer) -> Option<Self>{
+        let bb0 = if let Some(wbb0) = <P3<T>>::from_buffer(buf){ wbb0 }
+        else { return Option::None; };
+        let bb1 = if let Some(wbb1) = <P3<T>>::from_buffer(buf){ wbb1 }
+        else { return Option::None; };
+        let l0 = if let Some(wlen) = u64::from_buffer(buf){ wlen }
+        else { return Option::None; };
+        let mut outers = Vec::new();
+        for _ in 0..l0{
+            let mut vec = Vec::new();
+            let l1 = if let Some(wlen) = u64::from_buffer(buf){ wlen }
+            else { return Option::None; };
+            for _ in 0..l1{
+                let p = if let Some(wp) = <P4<T>>::from_buffer(buf){ wp }
+                else { return Option::None; };
+                vec.push(p);
+            }
+            outers.push(vec);
+        }
+        let l0 = if let Some(wlen) = u64::from_buffer(buf){ wlen }
+        else { return Option::None; };
+        let mut inners = Vec::new();
+        for _ in 0..l0{
+            let mut vec = Vec::new();
+            let l1 = if let Some(wlen) = u64::from_buffer(buf){ wlen }
+            else { return Option::None; };
+            for _ in 0..l1{
+                let p = if let Some(wp) = <P4<T>>::from_buffer(buf){ wp }
+                else { return Option::None; };
+                vec.push(p);
+            }
+            inners.push(vec);
+        }
+        Option::Some(Self{
+            outers,
+            inners,
+            bb: (bb0,bb1),
+        })
+    }
+}
+
+pub struct PolygonZIter<'a,T>{
+    pub current: usize,
+    pub outer: bool,
+    pub index: usize,
+    pub poly: &'a PolygonZ<T>,
+}
+
+impl<'a, T> Iterator for PolygonZIter<'a, T>{
+    type Item = &'a P4<T>;
+
+    fn next(&mut self) -> Option<Self::Item>{
+        let iter_sub = |sub: Vvec<P4<T>>|{
+            loop{
+                if self.index >= sub.len(){
+                    return Option::None;
+                }
+                if self.current >= self.index{
+                    self.index += 1;
+                    self.current = 0;
+                }else{
+                    break;
+                }
+            }
+            let i = self.current;
+            self.current += 1;
+            Option::Some(&sub[self.index][i])
+        };
+        if self.outer{
+            let res = iter_sub(self.poly.outers);
+            if res.is_some() { res }
+            else{
+                self.outer = false;
+                iter_sub(self.poly.inners)
+            }
+        }else{
+            iter_sub(self.poly.inners)
+        }
+    }
+}
+
+impl<'a, T> IntoIterator for &'a PolygonZ<T>{
+    type Item = &'a P4<T>;
+    type IntoIter = PolygonZIter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter{
+        PolygonZIter{
+            current: 0,
+            outer: true,
+            index: 0,
+            poly: self,
+        }
+    }
+}
+
+pub type Poly<T> = (Vvec<T>,Vvec<T>);
+pub type Polys<T> = Vec<Poly<T>>;
 pub type PolysP2 = Polys<P2<f64>>;
 pub type PolysP3 = Polys<P3<f64>>;
 pub type PolysP4 = Polys<P4<f64>>;
