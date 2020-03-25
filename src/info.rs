@@ -15,16 +15,21 @@ pub fn test_last<'a, P: IntoIterator>(prim: &'a [P]) -> Option<<&'a P as IntoIte
     }
     last
 }
-
-pub fn compress_doubles_stats(shapezs: &[ShapeZ<f64>]) -> Ranges{
+// using this magic: https://doc.rust-lang.org/nomicon/hrtb.html
+pub fn compress_doubles_stats<'a,P>(shapes: &'a [P]) -> Ranges
+    where
+        for<'b> &'b P: IntoIterator,
+        <&'a P as IntoIterator>::Item: HasXy<f64>,
+{
     let mut xmin = std::u64::MAX;
     let mut xmax = std::u64::MIN;
     let mut ymin = std::u64::MAX;
     let mut ymax = std::u64::MIN;
-    for shape in shapezs{
-        for p in &shape.points{
-            let i0 = p.0 as u64;
-            let i1 = p.1 as u64;
+    for shape in shapes{
+        for p in shape{
+            let xy = p.xy();
+            let i0 = xy.0 as u64;
+            let i1 = xy.1 as u64;
             xmax = xmax.max(i0);
             ymax = ymax.max(i1);
             xmin = xmin.min(i0);

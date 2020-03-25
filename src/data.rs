@@ -63,9 +63,9 @@ pub trait HasXy<T>{
     fn xy(&self) -> (T,T);
 }
 
-impl<T: Copy> HasXy<T> for (T,T){
+impl<T: Copy> HasXy<T> for &(T,T){
     fn xy(&self) -> (T,T){
-        *self
+        **self
     }
 }
 
