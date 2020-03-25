@@ -3,23 +3,11 @@ use shapefile::*;
 
 pub type Ranges = (u64,u64,u64,u64);
 
-pub fn test_last<'a, P: IntoIterator>(prim: &'a [P]) -> Option<<&'a P as IntoIterator>::Item>
-    where P::Item: Copy,
-          &'a P: IntoIterator,
-{
-    let mut last = Option::None;
-    for pr in prim{
-        for p in pr.into_iter(){
-            last = Option::Some(p);
-        }
-    }
-    last
-}
 // using this magic: https://doc.rust-lang.org/nomicon/hrtb.html
-pub fn compress_doubles_stats<'a,P>(shapes: &'a [P]) -> Ranges
+pub fn compress_doubles_stats<'a,S>(shapes: &'a [S]) -> Ranges
     where
-        for<'b> &'b P: IntoIterator,
-        <&'a P as IntoIterator>::Item: HasXy<f64>,
+        for<'b> &'b S: IntoIterator,
+        <&'a S as IntoIterator>::Item: HasXy<f64>,
 {
     let mut xmin = std::u64::MAX;
     let mut xmax = std::u64::MIN;
@@ -39,17 +27,22 @@ pub fn compress_doubles_stats<'a,P>(shapes: &'a [P]) -> Ranges
     (xmin, xmax - xmin, ymin, ymax - ymin)
 }
 
-pub fn compress_shapes_stats(shapezs: &[ShapeZ<f64>]) -> (u64,u64){
+pub fn compress_shapes_stats<'a,S>(shapes: &'a [S]) -> (u64,u64)
+    where
+        for<'b> &'b S: IntoIterator,
+        <&'a S as IntoIterator>::Item: HasXy<f64>,
+{
     let mut rangex = std::u64::MIN;
     let mut rangey = std::u64::MIN;
-    for shape in shapezs{
+    for shape in shapes{
         let mut xmin = std::u64::MAX;
         let mut xmax = std::u64::MIN;
         let mut ymin = std::u64::MAX;
         let mut ymax = std::u64::MIN;
-        for p in &shape.points{
-            let i0 = p.0 as u64;
-            let i1 = p.1 as u64;
+        for p in shape{
+            let xy = p.xy();
+            let i0 = xy.0 as u64;
+            let i1 = xy.1 as u64;
             xmax = xmax.max(i0);
             ymax = ymax.max(i1);
             xmin = xmin.min(i0);
@@ -61,18 +54,24 @@ pub fn compress_shapes_stats(shapezs: &[ShapeZ<f64>]) -> (u64,u64){
     (rangex,rangey)
 }
 
-pub fn compress_repeated_points_in_lines_stats(shapezs: &[ShapeZ<f64>]) -> (usize,usize){
+pub fn compress_repeated_points_in_lines_stats<'a, S>(shapes: &'a [S]) -> (usize,usize)
+    where
+        for<'b> &'b S: IntoIterator,
+        <&'a S as IntoIterator>::Item: PartialEq,
+{
     let mut points = 0;
     let mut repeated = 0;
-    for shape in shapezs{
-        if shape.points.is_empty() { continue; }
-        let last = &shape.points[0];
-        for p in shape.points.iter().skip(1){
+    for shape in shapes{
+        let mut iter = shape.into_iter();
+        let first = iter.next();
+        if first.is_none() { continue; }
+        let last = first.unwrap();
+        for p in iter{
+            points += 1;
             if p == last{
                 repeated += 1;
             }
         }
-        points += shape.points.len();
     }
     (points,repeated)
 }
