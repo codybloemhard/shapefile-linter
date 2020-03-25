@@ -39,6 +39,18 @@ fn main() {
             print_shape_content(&shapes);
             let splitted = split(shapes, &mut logger);
             print_split_content(&splitted);
+        }else if mode == "polygonZ"{
+            let polys = split(shapes, &mut logger).11;
+            let mut buffer = Vec::new();
+            //polys.into_buffer(&mut buffer); // cant bufferize (T,T,T,T)
+            println!("Bufferized: {} ms", timer.elapsed().as_millis());
+            let ok = buffer_write_file(&Path::new(&outfile), &buffer);
+            println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
+                     timer.elapsed().as_millis());
+            logger.report();
+            // let test = vec![(vec![vec![1.0f64]],vec![vec![1.0f64]])];
+            // let mut buffer = Vec::new();
+            // test.into_buffer(&mut buffer);
         }else if mode == "height"{
             let all = split(shapes, &mut logger);
             let plinezs = all.5;

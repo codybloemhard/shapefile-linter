@@ -3,6 +3,19 @@ use shapefile::*;
 
 pub type Ranges = (u64,u64,u64,u64);
 
+pub fn test_last<'a, P: IntoIterator>(prim: &'a [P]) -> Option<<&'a P as IntoIterator>::Item>
+    where P::Item: Copy,
+          &'a P: IntoIterator,
+{
+    let mut last = Option::None;
+    for pr in prim{
+        for p in pr.into_iter(){
+            last = Option::Some(p);
+        }
+    }
+    last
+}
+
 pub fn compress_doubles_stats(shapezs: &[ShapeZ<f64>]) -> Ranges{
     let mut xmin = std::u64::MAX;
     let mut xmax = std::u64::MIN;

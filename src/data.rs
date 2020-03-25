@@ -59,6 +59,55 @@ impl<T: Bufferable + Clone> Bufferable for ShapeZ<T>{
     }
 }
 
+pub trait HasXy<T>{
+    fn xy(&self) -> (T,T);
+}
+
+impl<T: Copy> HasXy<T> for (T,T){
+    fn xy(&self) -> (T,T){
+        *self
+    }
+}
+
+pub struct ShapeZIter<'a,T>{
+    pub current: usize,
+    pub shapez: &'a ShapeZ<T>,
+}
+
+impl<'a, T> ShapeZIter<'a,T>{
+    pub fn from(shapez: &'a ShapeZ<T>) -> ShapeZIter<'a,T>{
+        ShapeZIter{
+            current: 0,
+            shapez,
+        }
+    }
+}
+
+impl<'a, T> Iterator for ShapeZIter<'a, T>{
+    type Item = &'a P2<T>;
+
+    fn next(&mut self) -> Option<Self::Item>{
+        if self.current >= self.shapez.points.len(){
+            return Option::None;
+        }
+        let i = self.current;
+        self.current += 1;
+        Option::Some(&self.shapez.points[i])
+    }
+}
+
+impl<'a, T> IntoIterator for &'a ShapeZ<T>{
+    type Item = &'a P2<T>;
+    type IntoIter = ShapeZIter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter{
+        ShapeZIter{
+            current: 0,
+            shapez: self,
+        }
+    }
+}
+
 pub type Polys<T> = Vec<(Vvec<T>,Vvec<T>)>;
 pub type PolysP2 = Polys<P2<f64>>;
 pub type PolysP3 = Polys<P3<f64>>;
