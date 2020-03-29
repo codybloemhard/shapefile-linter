@@ -29,12 +29,16 @@ pub fn compress_doubles_stats<'a,S>(shapes: &'a [S]) -> Ranges
 
 pub fn compress_shapes_stats<'a,S>(shapes: &'a [S]) -> (u64,u64)
     where
+        S: CustomShape,
         for<'b> &'b S: IntoIterator,
         <&'a S as IntoIterator>::Item: HasXy<f64>,
 {
     let mut rangex = std::u64::MIN;
     let mut rangey = std::u64::MIN;
     for shape in shapes{
+        if shape.points_len() == 0 {
+            continue;
+        }
         let mut xmin = std::u64::MAX;
         let mut xmax = std::u64::MIN;
         let mut ymin = std::u64::MAX;

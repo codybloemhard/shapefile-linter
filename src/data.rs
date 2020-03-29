@@ -27,6 +27,16 @@ impl<T: Copy> HasXy<T> for &(T,T){
     }
 }
 
+impl<T: Copy> HasXy<T> for &(T,T,T,T){
+    fn xy(&self) -> (T,T){
+        (self.0,self.1)
+    }
+}
+
+pub trait CustomShape{
+    fn points_len(&self) -> usize;
+}
+
 #[derive(Clone)]
 pub struct ShapeZ<T>{
     pub points: Vec<P2<T>>,
@@ -66,6 +76,12 @@ impl<T: Bufferable + Clone> Bufferable for ShapeZ<T>{
             z,
             bb: (bb0,bb1),
         })
+    }
+}
+
+impl<T> CustomShape for ShapeZ<T>{
+    fn points_len(&self) -> usize{
+        self.points.len()
     }
 }
 
@@ -114,6 +130,12 @@ impl<T: Default + Copy> PolygonZ<T>{
             inners: raw.1,
             bb: ((d,d,d),(d,d,d)),
         }
+    }
+}
+
+impl<T> CustomShape for PolygonZ<T>{
+    fn points_len(&self) -> usize{
+        self.inners.len() + self.outers.len()
     }
 }
 
@@ -187,14 +209,12 @@ impl<'a, T> Iterator for PolygonZIter<'a, T>{
                 if ind >= sub.len(){
                     return (Option::None,ind,cur);
                 }
-                if cur >= ind{
+                if cur >= sub[ind].len(){
                     ind += 1;
                     cur = 0;
                 }else{ break; }
             }
-            let i = cur;
-            cur += 1;
-            (Option::Some(&sub[ind][i]),ind,cur)
+            (Option::Some(&sub[ind][cur]),ind,cur + 1)
         };
         let mut ind = self.index;
         let mut cur = self.current;
@@ -208,7 +228,11 @@ impl<'a, T> Iterator for PolygonZIter<'a, T>{
         let (r,i,c) = iter_sub(&self.poly.outers, ind, cur);
         ind = i;
         cur = c;
-        if r.is_some(){ r }
+        if r.is_some(){
+            self.index = i;
+            self.current = c;
+            r
+        }
         else{
             self.outer = false;
             let (r,i,c) = iter_sub(&self.poly.inners, ind, cur);

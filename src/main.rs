@@ -15,6 +15,7 @@ use info::*;
 use compress::*;
 use logger::*;
 use data::*;
+use crate::data::{PolygonZ};
 
 fn main() {
     let args = lapp::parse_args("
@@ -41,16 +42,25 @@ fn main() {
             print_split_content(&splitted);
         }else if mode == "polygonZ"{
             let polys = split(shapes, &mut logger).11;
+            let polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(|x| PolygonZ::from(x)).collect();
+            let ranges = compress_doubles_stats(&polyzs);
+            let (mx,rx,my,ry) = ranges;
+            println!("minx: {}, rangex:{}, miny: {}, rangey: {}", mx, rx, my, ry);
+            let shapesrange = compress_shapes_stats(&polyzs);
+            println!("shaperangex: {}, shaperangey: {}", shapesrange.0, shapesrange.1);
+            let counts = compress_repeated_points_in_lines_stats(&polyzs);
+            println!("total: {}, repeated: {}", counts.0, counts.1);
+            let (range,target)= target_compression_type(ranges);
+            let (multi,usage) = target_multiplier(range,target);
+            println!("target {} with multiplier {} using {} of range",
+                     target.to_string(), multi, usage);
             let mut buffer = Vec::new();
-            //polys.into_buffer(&mut buffer); // cant bufferize (T,T,T,T)
+            polyzs.into_buffer(&mut buffer); // cant bufferize (T,T,T,T)
             println!("Bufferized: {} ms", timer.elapsed().as_millis());
             let ok = buffer_write_file(&Path::new(&outfile), &buffer);
             println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
                      timer.elapsed().as_millis());
             logger.report();
-            // let test = vec![(vec![vec![1.0f64]],vec![vec![1.0f64]])];
-            // let mut buffer = Vec::new();
-            // test.into_buffer(&mut buffer);
         }else if mode == "height"{
             let all = split(shapes, &mut logger);
             let plinezs = all.5;
