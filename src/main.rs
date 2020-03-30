@@ -40,7 +40,7 @@ fn main() {
             print_shape_content(&shapes);
             let splitted = split(shapes, &mut logger);
             print_split_content(&splitted);
-        }else if mode == "polygonZ"{
+        }else if mode == "polygonz"{
             let polys = split(shapes, &mut logger).11;
             let polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(|x| PolygonZ::from(x)).collect();
             let ranges = compress_doubles_stats(&polyzs);
@@ -55,7 +55,7 @@ fn main() {
             println!("target {} with multiplier {} using {} of range",
                      target.to_string(), multi, usage);
             let mut buffer = Vec::new();
-            polyzs.into_buffer(&mut buffer); // cant bufferize (T,T,T,T)
+            polyzs.into_buffer(&mut buffer);
             println!("Bufferized: {} ms", timer.elapsed().as_millis());
             let ok = buffer_write_file(&Path::new(&outfile), &buffer);
             println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,

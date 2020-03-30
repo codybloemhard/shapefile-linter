@@ -28,6 +28,19 @@ fn bb_to_t<T: FromU64>(bb: (P3<f64>,P3<f64>)) -> (P3<T>,P3<T>){
     )
 }
 
+// pub trait Compressable
+// {
+//     fn compress<T: Bufferable + FromU64>
+//         (self, mx: u64, my: u64, multi: u64) -> U<T>;
+// }
+//
+// impl Compressable<ShapeZ,f64> for ShapeZ<f64>{
+//     fn compress<T: Bufferable + FromU64>
+//         (self, mx: u64, my: u64, multi: u64) -> ShapeZ<T>{
+//
+//         }
+// }
+
 pub fn compress_shapez_into<T: Bufferable + FromU64>
     (shapezs: Vec<ShapeZ<f64>>, mx: u64, my: u64, multi: u64) -> Vec<ShapeZ<T>>{
     let mut nshapezs = Vec::new();
