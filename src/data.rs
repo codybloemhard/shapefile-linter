@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use bin_buffer::*;
 use shapefile::*;
 use shapefile::record::polygon::GenericPolygon;
@@ -34,6 +35,76 @@ impl<T: Copy> HasXy<T> for &(T,T,T,T){
     }
 }
 
+pub trait MinMax{
+    fn minv() -> Self;
+    fn maxv() -> Self;
+    fn min_of(self, x: Self) -> Self;
+    fn max_of(self, x: Self) -> Self;
+}
+
+macro_rules! ImplMinMax {
+    ($ttype:ident) => {
+        impl MinMax for $ttype
+        {
+            fn minv() -> Self{ std::$ttype::MIN }
+            fn maxv() -> Self{ std::$ttype::MAX }
+            fn min_of(self, x: Self) -> Self{ self.min(x) }
+            fn max_of(self, x: Self) -> Self{ self.max(x) }
+        }
+    };
+}
+
+ImplMinMax!(f64);
+ImplMinMax!(f32);
+ImplMinMax!(u64);
+ImplMinMax!(u32);
+ImplMinMax!(u16);
+ImplMinMax!(u8);
+
+pub trait Bounded<T>{
+    fn stretch_bound(self, bb: &mut BB<T>);
+}
+
+impl<T: MinMax + Copy> Bounded<T> for &(T,T){
+    fn stretch_bound(self, bb: &mut BB<T>){
+        (bb.0).0 = (bb.0).0.min_of(self.0);
+        (bb.0).1 = (bb.0).1.min_of(self.1);
+        (bb.1).0 = (bb.1).0.max_of(self.0);
+        (bb.1).1 = (bb.1).1.max_of(self.1);
+    }
+}
+
+impl<T: MinMax + Copy> Bounded<T> for &(T,T,T,T){
+    fn stretch_bound(self, bb: &mut BB<T>){
+        (bb.0).0 = (bb.0).0.min_of(self.0);
+        (bb.0).1 = (bb.0).1.min_of(self.1);
+        (bb.0).2 = (bb.0).2.min_of(self.2);
+        (bb.1).0 = (bb.1).0.max_of(self.0);
+        (bb.1).1 = (bb.1).1.max_of(self.1);
+        (bb.1).2 = (bb.1).2.max_of(self.2);
+    }
+}
+
+pub trait BoundingType{
+    fn default_box() -> BB<Self> where Self: Sized;
+    fn start_box() -> BB<Self> where Self: Sized;
+}
+
+impl<T> BoundingType for T
+    where
+        T: Copy + Default + MinMax + Sized
+{
+    fn default_box() -> BB<T>{
+        ((T::default(),T::default(),T::default()),
+        (T::default(),T::default(),T::default()))
+    }
+
+    fn start_box() -> BB<T>{
+        ((T::maxv(),T::maxv(),T::maxv()),
+        (T::minv(),T::minv(),T::minv()))
+    }
+}
+
 pub trait CustomShape{
     fn points_len(&self) -> usize;
 }
@@ -47,19 +118,80 @@ pub trait UpdateableBB<T>{
     fn update_bb(&mut self);
 }
 
-impl<T,U> UpdateableBB<T> for U
+// impl<'a,'b,T,U> UpdateableBB<'a,T> for U
+//     where
+//         T: MinMax + BoundingType,
+//         U: 'b + HasBB<T> + CustomShape,
+//         for<'c> &'c U: IntoIterator,
+//         <&'b U as IntoIterator>::Item: Bounded<T> + Clone,
+// {
+//     fn update_bb(&mut self){
+//         if self.points_len() == 0 { return; }
+//         let mut bb = T::start_box();
+//         let b: &U = self.borrow();
+//         for x in b{
+//             x.clone().stretch_bound(&mut bb);
+//         }
+//         self.set_bounding_box(bb);
+//     }
+// }
+
+impl<T> UpdateableBB<T> for ShapeZ<T>
     where
-        U: HasBB<T>,
-        for<'a> &'a U: IntoIterator,
+        T: BoundingType + MinMax + Copy,
 {
     fn update_bb(&mut self){
-
+        if self.points_len() == 0 { return; }
+        let mut bb = T::start_box();
+        let b: &ShapeZ<T> = self.borrow();
+        for x in b{
+            x.stretch_bound(&mut bb);
+        }
+        self.set_bounding_box(bb);
     }
 }
-// pub fn compress_doubles_stats<'a,S>(shapes: &'a [S]) -> Ranges
-//     where
-//         for<'b> &'b S: IntoIterator,
-//         <&'a S as IntoIterator>::Item: HasXy<f64>,
+
+impl<T> UpdateableBB<T> for PolygonZ<T>
+    where
+        T: BoundingType + MinMax + Copy,
+{
+    fn update_bb(&mut self){
+        if self.points_len() == 0 { return; }
+        let mut bb = T::start_box();
+        let b: &PolygonZ<T> = self.borrow();
+        for x in b{
+            x.stretch_bound(&mut bb);
+        }
+        self.set_bounding_box(bb);
+    }
+}
+
+pub fn get_global_bb<T,U>(shapes: &[U]) -> BB<T>
+    where
+        U: HasBB<T>,
+        T: MinMax + Copy + BoundingType,
+{
+    if shapes.is_empty() {
+        return T::default_box();
+    }
+    let mut minx = T::maxv();
+    let mut maxx = T::minv();
+    let mut miny = T::maxv();
+    let mut maxy = T::minv();
+    let mut minz = T::maxv();
+    let mut maxz = T::minv();
+    for shape in shapes{
+        let bb = shape.bounding_box();
+        minx = minx.min_of((bb.0).0);
+        miny = miny.min_of((bb.0).1);
+        minz = minz.min_of((bb.0).2);
+        maxx = maxx.max_of((bb.1).0);
+        maxy = maxy.max_of((bb.1).1);
+        maxz = maxz.max_of((bb.1).2);
+    }
+    ((minx,miny,minz),(maxx,maxy,maxz))
+}
+
 
 #[derive(Clone)]
 pub struct ShapeZ<T>{

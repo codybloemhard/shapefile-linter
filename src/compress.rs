@@ -1,6 +1,6 @@
 use bin_buffer::*;
 
-use crate::data::{ShapeZ,P3,VvP4,HasBB,BB};
+use crate::data::{ShapeZ,P3,VvP4};
 use crate::logger::*;
 
 pub trait FromU64{
@@ -60,88 +60,6 @@ pub fn compress_shapez_into<T: Bufferable + FromU64>
     nshapezs
 }
 
-pub trait MinMax{
-    fn minv() -> Self;
-    fn maxv() -> Self;
-    fn min_of(self, x: Self) -> Self;
-    fn max_of(self, x: Self) -> Self;
-}
-
-macro_rules! ImplMinMax {
-    ($ttype:ident) => {
-        impl MinMax for $ttype
-        {
-            fn minv() -> Self{ std::$ttype::MIN }
-            fn maxv() -> Self{ std::$ttype::MAX }
-            fn min_of(self, x: Self) -> Self{ self.min(x) }
-            fn max_of(self, x: Self) -> Self{ self.max(x) }
-        }
-    };
-}
-
-ImplMinMax!(f64);
-ImplMinMax!(f32);
-ImplMinMax!(u64);
-ImplMinMax!(u32);
-ImplMinMax!(u16);
-ImplMinMax!(u8);
-
-pub fn set_bb<T: MinMax + Copy>
-    (shapes: &mut Vec<ShapeZ<T>>) -> ((T,T,T),(T,T,T)){
-    let mut gminx = T::maxv();
-    let mut gmaxx = T::minv();
-    let mut gminy = T::maxv();
-    let mut gmaxy = T::minv();
-    let mut gminz = T::maxv();
-    let mut gmaxz = T::minv();
-    for shape in shapes{
-        let mut minx = T::maxv();
-        let mut maxx = T::minv();
-        let mut miny = T::maxv();
-        let mut maxy = T::minv();
-        for point in &shape.points{
-            minx = minx.min_of(point.0);
-            maxx = maxx.max_of(point.0);
-            miny = miny.min_of(point.1);
-            maxy = maxy.max_of(point.1);
-        }
-        shape.bb = ((minx,miny,shape.z),(maxx,maxy,shape.z));
-        gminx = gminx.min_of(minx);
-        gmaxx = gmaxx.max_of(maxx);
-        gminy = gminy.min_of(miny);
-        gmaxy = gmaxy.max_of(maxy);
-        gminz = gminz.min_of(shape.z);
-        gmaxz = gmaxz.max_of(shape.z);
-    }
-    ((gminx,gminy,gminz),(gmaxx,gmaxy,gmaxz))
-}
-
-pub fn get_global_bb<T,U>(shapes: &Vec<U>) -> BB<T>
-    where
-        U: HasBB<T>,
-        T: MinMax + Copy + Default,
-{
-    if shapes.is_empty() {
-        return ((T::default(),T::default(),T::default()),
-        (T::default(),T::default(),T::default()));
-    }
-    let mut minx = T::maxv();
-    let mut maxx = T::minv();
-    let mut miny = T::maxv();
-    let mut maxy = T::minv();
-    let mut minz = T::maxv();
-    let mut maxz = T::minv();
-    for shape in shapes{
-        let bb = shape.bounding_box();
-        minx = minx.min_of((bb.0).0);
-        miny = miny.min_of((bb.0).1);
-        minz = minz.min_of((bb.0).2);
-        maxx = maxx.max_of((bb.1).0);
-        maxy = maxy.max_of((bb.1).1);
-        maxz = maxz.max_of((bb.1).2);
-    }
-    ((minx,miny,minz),(maxx,maxy,maxz))
-}
 
 pub fn compress_heightmap(shapes: VvP4, logger: &mut Logger)
     -> Vec<ShapeZ<f64>>{

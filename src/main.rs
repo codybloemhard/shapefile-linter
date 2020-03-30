@@ -42,7 +42,7 @@ fn main() {
             print_split_content(&splitted);
         }else if mode == "polygonz"{
             let polys = split(shapes, &mut logger).11;
-            let mut polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(|x| PolygonZ::from(x)).collect();
+            let mut polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(PolygonZ::from).collect();
             let ranges = compress_doubles_stats(&polyzs);
             let (mx,rx,my,ry) = ranges;
             println!("minx: {}, rangex:{}, miny: {}, rangey: {}", mx, rx, my, ry);
@@ -83,7 +83,8 @@ fn main() {
             macro_rules! TargetIntoBuffer {
                 ($ttype:ident) => {
                     let mut ns = compress_shapez_into::<$ttype>(shapezs,mx,my,multi);
-                    let bb = set_bb(&mut ns);
+                    ns.iter_mut().for_each(|x| x.update_bb());
+                    let bb = get_global_bb(&ns);
                     bb.into_buffer(&mut buffer);
                     ns.into_buffer(&mut buffer);
                 };
@@ -93,7 +94,8 @@ fn main() {
                 CompTarget::U16 => { TargetIntoBuffer!(u16); },
                 CompTarget::U32 => { TargetIntoBuffer!(u32); },
                 CompTarget::NONE => {
-                    let bb = set_bb(&mut shapezs);
+                    shapezs.iter_mut().for_each(|x| x.update_bb());
+                    let bb = get_global_bb(&shapezs);
                     bb.into_buffer(&mut buffer);
                     shapezs.into_buffer(&mut buffer);
                 },
