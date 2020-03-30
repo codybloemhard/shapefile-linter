@@ -15,7 +15,7 @@ use info::*;
 use compress::*;
 use logger::*;
 use data::*;
-use crate::data::{PolygonZ};
+use crate::data::{PolygonZ,UpdateableBB};
 
 fn main() {
     let args = lapp::parse_args("
@@ -42,7 +42,7 @@ fn main() {
             print_split_content(&splitted);
         }else if mode == "polygonz"{
             let polys = split(shapes, &mut logger).11;
-            let polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(|x| PolygonZ::from(x)).collect();
+            let mut polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(|x| PolygonZ::from(x)).collect();
             let ranges = compress_doubles_stats(&polyzs);
             let (mx,rx,my,ry) = ranges;
             println!("minx: {}, rangex:{}, miny: {}, rangey: {}", mx, rx, my, ry);
@@ -55,6 +55,7 @@ fn main() {
             println!("target {} with multiplier {} using {} of range",
                      target.to_string(), multi, usage);
             let mut buffer = Vec::new();
+            polyzs.iter_mut().for_each(|x| x.update_bb());
             polyzs.into_buffer(&mut buffer);
             println!("Bufferized: {} ms", timer.elapsed().as_millis());
             let ok = buffer_write_file(&Path::new(&outfile), &buffer);

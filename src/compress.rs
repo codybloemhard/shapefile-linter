@@ -1,6 +1,6 @@
 use bin_buffer::*;
 
-use crate::data::{ShapeZ,P3,VvP4};
+use crate::data::{ShapeZ,P3,VvP4,HasBB,BB};
 use crate::logger::*;
 
 pub trait FromU64{
@@ -114,6 +114,33 @@ pub fn set_bb<T: MinMax + Copy>
         gmaxz = gmaxz.max_of(shape.z);
     }
     ((gminx,gminy,gminz),(gmaxx,gmaxy,gmaxz))
+}
+
+pub fn get_global_bb<T,U>(shapes: &Vec<U>) -> BB<T>
+    where
+        U: HasBB<T>,
+        T: MinMax + Copy + Default,
+{
+    if shapes.is_empty() {
+        return ((T::default(),T::default(),T::default()),
+        (T::default(),T::default(),T::default()));
+    }
+    let mut minx = T::maxv();
+    let mut maxx = T::minv();
+    let mut miny = T::maxv();
+    let mut maxy = T::minv();
+    let mut minz = T::maxv();
+    let mut maxz = T::minv();
+    for shape in shapes{
+        let bb = shape.bounding_box();
+        minx = minx.min_of((bb.0).0);
+        miny = miny.min_of((bb.0).1);
+        minz = minz.min_of((bb.0).2);
+        maxx = maxx.max_of((bb.1).0);
+        maxy = maxy.max_of((bb.1).1);
+        maxz = maxz.max_of((bb.1).2);
+    }
+    ((minx,miny,minz),(maxx,maxy,maxz))
 }
 
 pub fn compress_heightmap(shapes: VvP4, logger: &mut Logger)

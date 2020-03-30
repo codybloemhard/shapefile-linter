@@ -7,6 +7,7 @@ use crate::logger::*;
 pub type P2<T> = (T,T);
 pub type P3<T> = (T,T,T);
 pub type P4<T> = (T,T,T,T);
+pub type BB<T> = (P3<T>,P3<T>);
 
 pub type VP2 = Vec<P2<f64>>;
 pub type VP3 = Vec<P3<f64>>;
@@ -37,11 +38,34 @@ pub trait CustomShape{
     fn points_len(&self) -> usize;
 }
 
+pub trait HasBB<T>{
+    fn bounding_box(&self) -> &BB<T>;
+    fn set_bounding_box(&mut self, bb: BB<T>);
+}
+
+pub trait UpdateableBB<T>{
+    fn update_bb(&mut self);
+}
+
+impl<T,U> UpdateableBB<T> for U
+    where
+        U: HasBB<T>,
+        for<'a> &'a U: IntoIterator,
+{
+    fn update_bb(&mut self){
+
+    }
+}
+// pub fn compress_doubles_stats<'a,S>(shapes: &'a [S]) -> Ranges
+//     where
+//         for<'b> &'b S: IntoIterator,
+//         <&'a S as IntoIterator>::Item: HasXy<f64>,
+
 #[derive(Clone)]
 pub struct ShapeZ<T>{
     pub points: Vec<P2<T>>,
     pub z: T,
-    pub bb: (P3<T>,P3<T>),
+    pub bb: BB<T>,
 }
 
 impl<T: Bufferable + Clone> Bufferable for ShapeZ<T>{
@@ -85,6 +109,16 @@ impl<T> CustomShape for ShapeZ<T>{
     }
 }
 
+impl<T> HasBB<T> for ShapeZ<T>{
+    fn bounding_box(&self) -> &BB<T>{
+        &self.bb
+    }
+
+    fn set_bounding_box(&mut self, bb: BB<T>){
+        self.bb = bb
+    }
+}
+
 pub struct ShapeZIter<'a,T>{
     pub current: usize,
     pub shapez: &'a ShapeZ<T>,
@@ -119,7 +153,7 @@ impl<'a, T> IntoIterator for &'a ShapeZ<T>{
 pub struct PolygonZ<T>{
     pub inners: Vvec<P4<T>>,
     pub outers: Vvec<P4<T>>,
-    pub bb: (P3<T>,P3<T>),
+    pub bb: BB<T>,
 }
 
 impl<T: Default + Copy> PolygonZ<T>{
@@ -136,6 +170,16 @@ impl<T: Default + Copy> PolygonZ<T>{
 impl<T> CustomShape for PolygonZ<T>{
     fn points_len(&self) -> usize{
         self.inners.len() + self.outers.len()
+    }
+}
+
+impl<T> HasBB<T> for PolygonZ<T>{
+    fn bounding_box(&self) -> &BB<T>{
+        &self.bb
+    }
+
+    fn set_bounding_box(&mut self, bb: BB<T>){
+        self.bb = bb
     }
 }
 

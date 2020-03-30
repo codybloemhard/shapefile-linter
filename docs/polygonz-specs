@@ -1,5 +1,7 @@
 T = f64
-bmin: (T,T,T), //Global bounding box min
-bmax: (T,T,T), //Global bounding box max
-[[(T,T,T,T)]], //Array of outer "rings", (x,y,z,w)
-[[(T,T,T,T)]], //Array of inner "rings", (x,y,z,w)
+[
+    bmin: (T,T,T), //bounding box min
+    bmax: (T,T,T), //bounding box max
+    [[(T,T,T,T)]], //Array of outer "rings", (x,y,z,w)
+    [[(T,T,T,T)]], //Array of inner "rings", (x,y,z,w)
+]
