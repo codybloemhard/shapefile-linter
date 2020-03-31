@@ -3,6 +3,25 @@ use shapefile::*;
 
 pub type Ranges = (u64,u64,u64,u64);
 
+pub fn info_package<'a,S>(shapes: &'a [S]) -> (u64,u64,u64,CompTarget)
+    where
+        S: CustomShape,
+        for<'b> &'b S: IntoIterator,
+        <&'a S as IntoIterator>::Item: HasXy<f64> + PartialEq,
+{
+    let ranges = compress_doubles_stats(shapes);
+    let (mx,rx,my,ry) = ranges;
+    println!("minx: {}, rangex:{}, miny: {}, rangey: {}", mx, rx, my, ry);
+    let shapesrange = compress_shapes_stats(shapes);
+    println!("shaperangex: {}, shaperangey: {}", shapesrange.0, shapesrange.1);
+    let counts = compress_repeated_points_in_lines_stats(shapes);
+    println!("total: {}, repeated: {}", counts.0, counts.1);
+    let (range,target)= target_compression_type(ranges);
+    let (multi,usage) = target_multiplier(range,target);
+    println!("target {} with multiplier {} using {} of range", target.to_string(), multi, usage);
+    (mx,my,multi,target)
+}
+
 // using this magic: https://doc.rust-lang.org/nomicon/hrtb.html
 pub fn compress_doubles_stats<'a,S>(shapes: &'a [S]) -> Ranges
     where

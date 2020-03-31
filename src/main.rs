@@ -15,7 +15,7 @@ use info::*;
 use compress::*;
 use logger::*;
 use data::*;
-use crate::data::{PolygonZ,UpdateableBB};
+use crate::data::{PolygonZ};
 
 fn main() {
     let args = lapp::parse_args("
@@ -42,21 +42,9 @@ fn main() {
             print_split_content(&splitted);
         }else if mode == "polygonz"{
             let polys = split(shapes, &mut logger).11;
-            let mut polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(PolygonZ::from).collect();
-            let ranges = compress_doubles_stats(&polyzs);
-            let (mx,rx,my,ry) = ranges;
-            println!("minx: {}, rangex:{}, miny: {}, rangey: {}", mx, rx, my, ry);
-            let shapesrange = compress_shapes_stats(&polyzs);
-            println!("shaperangex: {}, shaperangey: {}", shapesrange.0, shapesrange.1);
-            let counts = compress_repeated_points_in_lines_stats(&polyzs);
-            println!("total: {}, repeated: {}", counts.0, counts.1);
-            let (range,target)= target_compression_type(ranges);
-            let (multi,usage) = target_multiplier(range,target);
-            println!("target {} with multiplier {} using {} of range",
-                     target.to_string(), multi, usage);
-            let mut buffer = Vec::new();
-            polyzs.iter_mut().for_each(|x| x.update_bb());
-            polyzs.into_buffer(&mut buffer);
+            let polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(PolygonZ::from).collect();
+            let (mx,my,multi,target) = info_package(&polyzs);
+            let buffer = polyzs.compress(mx,my,multi,target);
             println!("Bufferized: {} ms", timer.elapsed().as_millis());
             let ok = buffer_write_file(&Path::new(&outfile), &buffer);
             println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
@@ -65,41 +53,10 @@ fn main() {
         }else if mode == "height"{
             let all = split(shapes, &mut logger);
             let plinezs = all.5;
-            let mut shapezs = compress_heightmap(plinezs, &mut logger);
+            let shapezs = compress_heightmap(plinezs, &mut logger);
             println!("Compressed: {} ms", timer.elapsed().as_millis());
-            let ranges = compress_doubles_stats(&shapezs);
-            let (mx,rx,my,ry)= ranges;
-            println!("minx: {}, rangex:{}, miny: {}, rangey: {}", mx, rx, my, ry);
-            let shapesrange = compress_shapes_stats(&shapezs);
-            println!("shaperangex: {}, shaperangey: {}", shapesrange.0, shapesrange.1);
-            let counts = compress_repeated_points_in_lines_stats(&shapezs);
-            println!("total: {}, repeated: {}", counts.0, counts.1);
-            let (range,target)= target_compression_type(ranges);
-            let (multi,usage) = target_multiplier(range,target);
-            println!("target {} with multiplier {} using {} of range",
-                     target.to_string(), multi, usage);
-            let mut buffer = Vec::new();
-            (mx,my,multi).into_buffer(&mut buffer);
-            macro_rules! TargetIntoBuffer {
-                ($ttype:ident) => {
-                    let mut ns = compress_shapez_into::<$ttype>(shapezs,mx,my,multi);
-                    ns.iter_mut().for_each(|x| x.update_bb());
-                    let bb = get_global_bb(&ns);
-                    bb.into_buffer(&mut buffer);
-                    ns.into_buffer(&mut buffer);
-                };
-            }
-            match target{
-                CompTarget::U8 => { TargetIntoBuffer!(u8); },
-                CompTarget::U16 => { TargetIntoBuffer!(u16); },
-                CompTarget::U32 => { TargetIntoBuffer!(u32); },
-                CompTarget::NONE => {
-                    shapezs.iter_mut().for_each(|x| x.update_bb());
-                    let bb = get_global_bb(&shapezs);
-                    bb.into_buffer(&mut buffer);
-                    shapezs.into_buffer(&mut buffer);
-                },
-            }
+            let (mx,my,multi,target) = info_package(&shapezs);
+            let buffer = shapezs.compress(mx,my,multi,target);
             println!("Bufferized: {} ms", timer.elapsed().as_millis());
             let ok = buffer_write_file(&Path::new(&outfile), &buffer);
             println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
