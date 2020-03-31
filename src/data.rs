@@ -29,7 +29,7 @@ impl<T: Copy> HasXy<T> for &(T,T){
     }
 }
 
-impl<T: Copy> HasXy<T> for &(T,T,T,T){
+impl<T: Copy> HasXy<T> for &(T,T,T){
     fn xy(&self) -> (T,T){
         (self.0,self.1)
     }
@@ -74,7 +74,7 @@ impl<T: MinMax + Copy> Bounded<T> for &(T,T){
     }
 }
 
-impl<T: MinMax + Copy> Bounded<T> for &(T,T,T,T){
+impl<T: MinMax + Copy> Bounded<T> for &(T,T,T){
     fn stretch_bound(self, bb: &mut BB<T>){
         (bb.0).0 = (bb.0).0.min_of(self.0);
         (bb.0).1 = (bb.0).1.min_of(self.1);
@@ -117,25 +117,7 @@ pub trait HasBB<T>{
 pub trait UpdateableBB{
     fn update_bb(&mut self);
 }
-
-// impl<'a,'b,T,U> UpdateableBB<'a,T> for U
-//     where
-//         T: MinMax + BoundingType,
-//         U: 'b + HasBB<T> + CustomShape,
-//         for<'c> &'c U: IntoIterator,
-//         <&'b U as IntoIterator>::Item: Bounded<T> + Clone,
-// {
-//     fn update_bb(&mut self){
-//         if self.points_len() == 0 { return; }
-//         let mut bb = T::start_box();
-//         let b: &U = self.borrow();
-//         for x in b{
-//             x.clone().stretch_bound(&mut bb);
-//         }
-//         self.set_bounding_box(bb);
-//     }
-// }
-
+//TODO: merge into single impl?
 impl<T> UpdateableBB for ShapeZ<T>
     where
         T: BoundingType + MinMax + Copy,
@@ -283,17 +265,28 @@ impl<'a, T> IntoIterator for &'a ShapeZ<T>{
 
 #[derive(Clone)]
 pub struct PolygonZ<T>{
-    pub inners: Vvec<P4<T>>,
-    pub outers: Vvec<P4<T>>,
+    pub inners: Vvec<P3<T>>,
+    pub outers: Vvec<P3<T>>,
     pub bb: BB<T>,
 }
 
 impl<T: Default + Copy> PolygonZ<T>{
     pub fn from(raw: Poly<P4<T>>) -> Self{
         let d = T::default();
+        fn crunch<T>(raw: Vvec<P4<T>>) -> Vvec<P3<T>>{
+            let mut col = Vec::new();
+            for outer in raw{
+                let mut vec = Vec::new();
+                for (x,y,z,_) in outer{
+                    vec.push((x,y,z));
+                }
+                col.push(vec);
+            }
+            col
+        }
         Self{
-            outers: raw.0,
-            inners: raw.1,
+            outers: crunch(raw.0),
+            inners: crunch(raw.1),
             bb: ((d,d,d),(d,d,d)),
         }
     }
@@ -328,38 +321,27 @@ impl<T: Bufferable + Clone> Bufferable for PolygonZ<T>{
     }
 
     fn from_buffer(buf: &mut ReadBuffer) -> Option<Self>{
-        let bb0 = if let Some(wbb0) = <P3<T>>::from_buffer(buf){ wbb0 }
-        else { return Option::None; };
-        let bb1 = if let Some(wbb1) = <P3<T>>::from_buffer(buf){ wbb1 }
-        else { return Option::None; };
-        let l0 = if let Some(wlen) = u64::from_buffer(buf){ wlen }
-        else { return Option::None; };
-        let mut outers = Vec::new();
-        for _ in 0..l0{
-            let mut vec = Vec::new();
-            let l1 = if let Some(wlen) = u64::from_buffer(buf){ wlen }
+        let bb0 = <P3<T>>::from_buffer(buf)?;
+        let bb1 = <P3<T>>::from_buffer(buf)?;
+        let mut read_part = ||{
+            let l = if let Some(wlen) = u64::from_buffer(buf){ wlen }
             else { return Option::None; };
-            for _ in 0..l1{
-                let p = if let Some(wp) = <P4<T>>::from_buffer(buf){ wp }
+            let mut col = Vec::new();
+            for _ in 0..l{
+                let mut vec = Vec::new();
+                let l1 = if let Some(wlen) = u64::from_buffer(buf){ wlen }
                 else { return Option::None; };
-                vec.push(p);
+                for _ in 0..l1{
+                    let p = if let Some(wp) = <P3<T>>::from_buffer(buf){ wp }
+                    else { return Option::None; };
+                    vec.push(p);
+                }
+                col.push(vec);
             }
-            outers.push(vec);
-        }
-        let l0 = if let Some(wlen) = u64::from_buffer(buf){ wlen }
-        else { return Option::None; };
-        let mut inners = Vec::new();
-        for _ in 0..l0{
-            let mut vec = Vec::new();
-            let l1 = if let Some(wlen) = u64::from_buffer(buf){ wlen }
-            else { return Option::None; };
-            for _ in 0..l1{
-                let p = if let Some(wp) = <P4<T>>::from_buffer(buf){ wp }
-                else { return Option::None; };
-                vec.push(p);
-            }
-            inners.push(vec);
-        }
+            Option::Some(col)
+        };
+        let outers = read_part()?;
+        let inners = read_part()?;
         Option::Some(Self{
             outers,
             inners,
@@ -376,11 +358,11 @@ pub struct PolygonZIter<'a,T>{
 }
 
 impl<'a, T> Iterator for PolygonZIter<'a, T>{
-    type Item = &'a P4<T>;
+    type Item = &'a P3<T>;
     //Note: this looks very clunky but it this way because the &mut gets in the way of the & if the
     //closure captures self
     fn next(&mut self) -> Option<Self::Item>{
-        let iter_sub = |sub: &'a Vvec<P4<T>>, mut ind: usize, mut cur: usize|{
+        let iter_sub = |sub: &'a Vvec<P3<T>>, mut ind: usize, mut cur: usize|{
             loop{
                 if ind >= sub.len(){
                     return (Option::None,ind,cur);
@@ -420,7 +402,7 @@ impl<'a, T> Iterator for PolygonZIter<'a, T>{
 }
 
 impl<'a, T> IntoIterator for &'a PolygonZ<T>{
-    type Item = &'a P4<T>;
+    type Item = &'a P3<T>;
     type IntoIter = PolygonZIter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter{

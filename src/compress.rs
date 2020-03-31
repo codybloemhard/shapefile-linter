@@ -1,5 +1,6 @@
 use bin_buffer::*;
 use crate::data::PolygonZ;
+use crate::data::Vvec;
 use crate::data::UpdateableBB;
 use crate::data::get_global_bb;
 use crate::info::CompTarget;
@@ -96,34 +97,25 @@ pub fn compress_shapez_into<T: Bufferable + FromU64>
 pub fn compress_polygonz_into<T: Bufferable + FromU64>
     (polygonzs: Vec<PolygonZ<f64>>, mx: u64, my: u64, multi: u64) -> Vec<PolygonZ<T>>{
     let mut npolygonzs = Vec::new();
-    for polygon in polygonzs{
-        let mut inners = Vec::new();
-        for inner in polygon.inners{
-            let mut vec = Vec::new();
-            for (x,y,z,_w) in inner{
-                let xx = T::offscale(x, mx, multi);
-                let yy = T::offscale(y, my, multi);
-                let zz = T::offscale(z, 0, 0); //TODO
-                let ww = T::offscale(0.0, 0, 0);
-                vec.push((xx,yy,zz,ww));
+    for pz in polygonzs{
+        let build = |old: Vvec<P3<f64>>|{
+            let mut col = Vec::new();
+            for sub in old{
+                let mut vec = Vec::new();
+                for (x,y,z) in sub{
+                    let xx = T::offscale(x, mx, multi);
+                    let yy = T::offscale(y, my, multi);
+                    let zz = T::offscale(z, 0, 0); //TODO
+                    vec.push((xx,yy,zz));
+                }
+                col.push(vec);
             }
-            inners.push(vec);
-        }
-        let mut outers = Vec::new();
-        for outer in polygon.outers{
-            let mut vec = Vec::new();
-            for (x,y,z,_w) in outer{
-                let xx = T::offscale(x, mx, multi);
-                let yy = T::offscale(y, my, multi);
-                let zz = T::offscale(z, 0, 0); //TODO
-                let ww = T::offscale(0.0, 0, 0);
-                vec.push((xx,yy,zz,ww));
-            }
-            outers.push(vec);
-        }
+            col
+        };
         npolygonzs.push(PolygonZ{
-            inners, outers,
-            bb: bb_to_t::<T>(polygon.bb),
+            inners: build(pz.inners),
+            outers: build(pz.outers),
+            bb: bb_to_t::<T>(pz.bb),
         });
     }
     npolygonzs

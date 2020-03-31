@@ -69,4 +69,3 @@ fn main() {
         println!("Could not read file: {}", infile);
     }
 }
-
