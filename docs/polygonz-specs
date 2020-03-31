@@ -1,7 +1,10 @@
-T = f64
+T = u16
+offx: u64,
+offy: u64,
+multi: u64,
 [
     bmin: (T,T,T), //bounding box min
     bmax: (T,T,T), //bounding box max
-    [[(T,T,T,T)]], //Array of outer "rings", (x,y,z,w)
-    [[(T,T,T,T)]], //Array of inner "rings", (x,y,z,w)
+    [[(T,T,T)]], //Array of outer "rings", (x,y,z)
+    [[(T,T,T)]], //Array of inner "rings", (x,y,z)
 ]
