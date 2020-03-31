@@ -1,4 +1,8 @@
 use bin_buffer::*;
+use crate::data::PolygonZ;
+use crate::data::UpdateableBB;
+use crate::data::get_global_bb;
+use crate::info::CompTarget;
 
 use crate::data::{ShapeZ,P3,VvP4};
 use crate::logger::*;
@@ -28,18 +32,47 @@ fn bb_to_t<T: FromU64>(bb: (P3<f64>,P3<f64>)) -> (P3<T>,P3<T>){
     )
 }
 
-// pub trait Compressable
-// {
-//     fn compress<T: Bufferable + FromU64>
-//         (self, mx: u64, my: u64, multi: u64) -> U<T>;
-// }
-//
-// impl Compressable<ShapeZ,f64> for ShapeZ<f64>{
-//     fn compress<T: Bufferable + FromU64>
-//         (self, mx: u64, my: u64, multi: u64) -> ShapeZ<T>{
-//
-//         }
-// }
+pub trait Compressable
+{
+    fn compress(self, mx: u64, my: u64, multi: u64, target: CompTarget) -> Buffer;
+}
+
+macro_rules! ImplCompressable {
+    ($btype:ty,$fname:ident) => {
+        impl Compressable for $btype
+        {
+            fn compress
+                (mut self, mx: u64, my: u64, multi: u64, target: CompTarget) -> Buffer{
+                    let mut buffer = Vec::new();
+                    (mx,my,multi).into_buffer(&mut buffer);
+                    macro_rules! TargetIntoBuffer {
+                        ($ttype:ident) => {
+                            let mut ns = $fname::<$ttype>(self,mx,my,multi);
+                            ns.iter_mut().for_each(|x| x.update_bb());
+                            let bb = get_global_bb(&ns);
+                            bb.into_buffer(&mut buffer);
+                            ns.into_buffer(&mut buffer);
+                        };
+                    }
+                    match target{
+                        CompTarget::U8 => { TargetIntoBuffer!(u8); },
+                        CompTarget::U16 => { TargetIntoBuffer!(u16); },
+                        CompTarget::U32 => { TargetIntoBuffer!(u32); },
+                        CompTarget::NONE => {
+                            self.iter_mut().for_each(|x| x.update_bb());
+                            let bb = get_global_bb(&self);
+                            bb.into_buffer(&mut buffer);
+                            self.into_buffer(&mut buffer);
+                        },
+                    }
+                    buffer
+                }
+        }
+    };
+}
+
+ImplCompressable!(Vec<ShapeZ<f64>>,compress_shapez_into);
+ImplCompressable!(Vec<PolygonZ<f64>>,compress_polygonz_into);
 
 pub fn compress_shapez_into<T: Bufferable + FromU64>
     (shapezs: Vec<ShapeZ<f64>>, mx: u64, my: u64, multi: u64) -> Vec<ShapeZ<T>>{
@@ -60,6 +93,41 @@ pub fn compress_shapez_into<T: Bufferable + FromU64>
     nshapezs
 }
 
+pub fn compress_polygonz_into<T: Bufferable + FromU64>
+    (polygonzs: Vec<PolygonZ<f64>>, mx: u64, my: u64, multi: u64) -> Vec<PolygonZ<T>>{
+    let mut npolygonzs = Vec::new();
+    for polygon in polygonzs{
+        let mut inners = Vec::new();
+        for inner in polygon.inners{
+            let mut vec = Vec::new();
+            for (x,y,z,_w) in inner{
+                let xx = T::offscale(x, mx, multi);
+                let yy = T::offscale(y, my, multi);
+                let zz = T::offscale(z, 0, 0); //TODO
+                let ww = T::offscale(0.0, 0, 0);
+                vec.push((xx,yy,zz,ww));
+            }
+            inners.push(vec);
+        }
+        let mut outers = Vec::new();
+        for outer in polygon.outers{
+            let mut vec = Vec::new();
+            for (x,y,z,_w) in outer{
+                let xx = T::offscale(x, mx, multi);
+                let yy = T::offscale(y, my, multi);
+                let zz = T::offscale(z, 0, 0); //TODO
+                let ww = T::offscale(0.0, 0, 0);
+                vec.push((xx,yy,zz,ww));
+            }
+            outers.push(vec);
+        }
+        npolygonzs.push(PolygonZ{
+            inners, outers,
+            bb: bb_to_t::<T>(polygon.bb),
+        });
+    }
+    npolygonzs
+}
 
 pub fn compress_heightmap(shapes: VvP4, logger: &mut Logger)
     -> Vec<ShapeZ<f64>>{

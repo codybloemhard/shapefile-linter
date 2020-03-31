@@ -114,7 +114,7 @@ pub trait HasBB<T>{
     fn set_bounding_box(&mut self, bb: BB<T>);
 }
 
-pub trait UpdateableBB<T>{
+pub trait UpdateableBB{
     fn update_bb(&mut self);
 }
 
@@ -136,7 +136,7 @@ pub trait UpdateableBB<T>{
 //     }
 // }
 
-impl<T> UpdateableBB<T> for ShapeZ<T>
+impl<T> UpdateableBB for ShapeZ<T>
     where
         T: BoundingType + MinMax + Copy,
 {
@@ -151,7 +151,7 @@ impl<T> UpdateableBB<T> for ShapeZ<T>
     }
 }
 
-impl<T> UpdateableBB<T> for PolygonZ<T>
+impl<T> UpdateableBB for PolygonZ<T>
     where
         T: BoundingType + MinMax + Copy,
 {
