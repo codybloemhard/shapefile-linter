@@ -117,36 +117,28 @@ pub trait HasBB<T>{
 pub trait UpdateableBB{
     fn update_bb(&mut self);
 }
-//TODO: merge into single impl?
-impl<T> UpdateableBB for ShapeZ<T>
-    where
-        T: BoundingType + MinMax + Copy,
-{
-    fn update_bb(&mut self){
-        if self.points_len() == 0 { return; }
-        let mut bb = T::start_box();
-        let b: &ShapeZ<T> = self.borrow();
-        for x in b{
-            x.stretch_bound(&mut bb);
+
+macro_rules! ImplUpdateableBB{
+    ($ttype:ident) => {
+        impl<T> UpdateableBB for $ttype<T>
+            where
+                T: BoundingType + MinMax + Copy,
+        {
+            fn update_bb(&mut self){
+                if self.points_len() == 0 { return; }
+                let mut bb = T::start_box();
+                let b: &$ttype<T> = self.borrow();
+                for x in b{
+                    x.stretch_bound(&mut bb);
+                }
+                self.set_bounding_box(bb);
+            }
         }
-        self.set_bounding_box(bb);
     }
 }
 
-impl<T> UpdateableBB for PolygonZ<T>
-    where
-        T: BoundingType + MinMax + Copy,
-{
-    fn update_bb(&mut self){
-        if self.points_len() == 0 { return; }
-        let mut bb = T::start_box();
-        let b: &PolygonZ<T> = self.borrow();
-        for x in b{
-            x.stretch_bound(&mut bb);
-        }
-        self.set_bounding_box(bb);
-    }
-}
+ImplUpdateableBB!(ShapeZ);
+ImplUpdateableBB!(PolygonZ);
 
 pub fn get_global_bb<T,U>(shapes: &[U]) -> BB<T>
     where
