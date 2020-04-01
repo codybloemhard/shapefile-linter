@@ -1,5 +1,6 @@
 mx: u64, //Global x offset
 my: u64, //Global y offset
+mz: u64, //Not used
 multi: u64, //Global multiplier
 bmin: (u16,u16,u16), //Global bounding box min
 bmax: (u16,u16,u16), //Global bounding box max
