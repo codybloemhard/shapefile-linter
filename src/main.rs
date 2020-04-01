@@ -56,8 +56,22 @@ fn do_things() -> Option<()>{
         print_shape_content(&shapes);
         let splitted = split(shapes, &mut logger);
         print_split_content(&splitted);
-    }else if mode == "merge"{
+    }else if mode == "mergeheight"{
         println!("{:?}", infiles);
+        let mut collection = Vec::new();
+        for file in infiles{
+            let read = read_single_file(file)?;
+            let plinezs = split(read, &mut logger).5;
+            let mut shapezs = compress_heightmap(plinezs, &mut logger);
+            collection.append(&mut shapezs);
+        }
+        let infos = info_package(&collection);
+        let buffer = collection.compress(infos);
+        let ok = buffer_write_file(&Path::new(&outfile), &buffer);
+        println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
+                 timer.elapsed().as_millis());
+    }else if mode == "chunkify"{
+
     }else if mode == "polygonz"{
         let shapes = read_only_file()?;
         let polys = split(shapes, &mut logger).11;
@@ -68,7 +82,6 @@ fn do_things() -> Option<()>{
         let ok = buffer_write_file(&Path::new(&outfile), &buffer);
         println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
                  timer.elapsed().as_millis());
-        logger.report();
     }else if mode == "height"{
         let shapes = read_only_file()?;
         let all = split(shapes, &mut logger);
@@ -81,9 +94,9 @@ fn do_things() -> Option<()>{
         let ok = buffer_write_file(&Path::new(&outfile), &buffer);
         println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
                  timer.elapsed().as_millis());
-        logger.report();
     }else{
         println!("Unsupported mode!");
     }
+    logger.report();
     Option::Some(())
 }
