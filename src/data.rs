@@ -19,19 +19,19 @@ pub type VvP2 = Vvec<P2<f64>>;
 pub type VvP3 = Vvec<P3<f64>>;
 pub type VvP4 = Vvec<P4<f64>>;
 
-pub trait HasXy<T>{
-    fn xy(&self) -> (T,T);
+pub trait HasXyz<T>{
+    fn xyz(&self) -> (T,T,T);
 }
 
-impl<T: Copy> HasXy<T> for &(T,T){
-    fn xy(&self) -> (T,T){
-        **self
+impl<T: Copy + Default> HasXyz<T> for &(T,T){
+    fn xyz(&self) -> (T,T,T){
+        (self.0,self.1,T::default())
     }
 }
 
-impl<T: Copy> HasXy<T> for &(T,T,T){
-    fn xy(&self) -> (T,T){
-        (self.0,self.1)
+impl<T: Copy> HasXyz<T> for &(T,T,T){
+    fn xyz(&self) -> (T,T,T){
+        **self
     }
 }
 

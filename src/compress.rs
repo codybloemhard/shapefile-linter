@@ -35,7 +35,7 @@ fn bb_to_t<T: FromU64>(bb: (P3<f64>,P3<f64>)) -> (P3<T>,P3<T>){
 
 pub trait Compressable
 {
-    fn compress(self, mx: u64, my: u64, multi: u64, target: CompTarget) -> Buffer;
+    fn compress(self, infos: (u64,u64,u64,u64,CompTarget)) -> Buffer;
 }
 
 macro_rules! ImplCompressable {
@@ -43,9 +43,9 @@ macro_rules! ImplCompressable {
         impl Compressable for $btype
         {
             fn compress
-                (mut self, mx: u64, my: u64, multi: u64, target: CompTarget) -> Buffer{
+                (mut self, (mx,my,mz,multi,target): (u64,u64,u64,u64,CompTarget)) -> Buffer{
                     let mut buffer = Vec::new();
-                    (mx,my,multi).into_buffer(&mut buffer);
+                    (mx,my,mz,multi).into_buffer(&mut buffer);
                     macro_rules! TargetIntoBuffer {
                         ($ttype:ident) => {
                             let mut ns = $fname::<$ttype>(self,mx,my,multi);

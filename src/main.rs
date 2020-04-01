@@ -43,8 +43,8 @@ fn main() {
         }else if mode == "polygonz"{
             let polys = split(shapes, &mut logger).11;
             let polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(PolygonZ::from).collect();
-            let (mx,my,multi,target) = info_package(&polyzs);
-            let buffer = polyzs.compress(mx,my,multi,target);
+            let infos = info_package(&polyzs);
+            let buffer = polyzs.compress(infos);
             println!("Bufferized: {} ms", timer.elapsed().as_millis());
             let ok = buffer_write_file(&Path::new(&outfile), &buffer);
             println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
@@ -55,8 +55,8 @@ fn main() {
             let plinezs = all.5;
             let shapezs = compress_heightmap(plinezs, &mut logger);
             println!("Compressed: {} ms", timer.elapsed().as_millis());
-            let (mx,my,multi,target) = info_package(&shapezs);
-            let buffer = shapezs.compress(mx,my,multi,target);
+            let infos = info_package(&shapezs);
+            let buffer = shapezs.compress(infos);
             println!("Bufferized: {} ms", timer.elapsed().as_millis());
             let ok = buffer_write_file(&Path::new(&outfile), &buffer);
             println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,

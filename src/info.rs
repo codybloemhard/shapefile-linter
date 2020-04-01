@@ -1,17 +1,17 @@
 use super::data::*;
 use shapefile::*;
 
-pub type Ranges = (u64,u64,u64,u64);
+pub type Ranges = (u64,u64,u64,u64,u64,u64);
 
-pub fn info_package<'a,S>(shapes: &'a [S]) -> (u64,u64,u64,CompTarget)
+pub fn info_package<'a,S>(shapes: &'a [S]) -> (u64,u64,u64,u64,CompTarget)
     where
         S: CustomShape,
         for<'b> &'b S: IntoIterator,
-        <&'a S as IntoIterator>::Item: HasXy<f64> + PartialEq,
+        <&'a S as IntoIterator>::Item: HasXyz<f64> + PartialEq,
 {
     let ranges = compress_doubles_stats(shapes);
-    let (mx,rx,my,ry) = ranges;
-    println!("minx: {}, rangex:{}, miny: {}, rangey: {}", mx, rx, my, ry);
+    let (mx,rx,my,ry,mz,rz) = ranges;
+    println!("minx: {}, rangex:{}, miny: {}, rangey: {}, minz: {}, rangez: {}", mx, rx, my, ry, mz, rz);
     let shapesrange = compress_shapes_stats(shapes);
     println!("shaperangex: {}, shaperangey: {}", shapesrange.0, shapesrange.1);
     let counts = compress_repeated_points_in_lines_stats(shapes);
@@ -19,41 +19,47 @@ pub fn info_package<'a,S>(shapes: &'a [S]) -> (u64,u64,u64,CompTarget)
     let (range,target)= target_compression_type(ranges);
     let (multi,usage) = target_multiplier(range,target);
     println!("target {} with multiplier {} using {} of range", target.to_string(), multi, usage);
-    (mx,my,multi,target)
+    (mx,my,mz,multi,target)
 }
 
 // using this magic: https://doc.rust-lang.org/nomicon/hrtb.html
 pub fn compress_doubles_stats<'a,S>(shapes: &'a [S]) -> Ranges
     where
         for<'b> &'b S: IntoIterator,
-        <&'a S as IntoIterator>::Item: HasXy<f64>,
+        <&'a S as IntoIterator>::Item: HasXyz<f64>,
 {
     let mut xmin = std::u64::MAX;
     let mut xmax = std::u64::MIN;
     let mut ymin = std::u64::MAX;
     let mut ymax = std::u64::MIN;
+    let mut zmin = std::u64::MAX;
+    let mut zmax = std::u64::MIN;
     for shape in shapes{
         for p in shape{
-            let xy = p.xy();
-            let i0 = xy.0 as u64;
-            let i1 = xy.1 as u64;
-            xmax = xmax.max(i0);
-            ymax = ymax.max(i1);
-            xmin = xmin.min(i0);
-            ymin = ymin.min(i1);
+            let xyz = p.xyz();
+            let x = xyz.0 as u64;
+            let y = xyz.1 as u64;
+            let z = xyz.2 as u64;
+            xmax = xmax.max(x);
+            ymax = ymax.max(y);
+            zmax = zmax.max(z);
+            xmin = xmin.min(x);
+            ymin = ymin.min(y);
+            zmin = zmin.min(z);
         }
     }
-    (xmin, xmax - xmin, ymin, ymax - ymin)
+    (xmin, xmax - xmin, ymin, ymax - ymin, zmin, zmax - zmin)
 }
 
-pub fn compress_shapes_stats<'a,S>(shapes: &'a [S]) -> (u64,u64)
+pub fn compress_shapes_stats<'a,S>(shapes: &'a [S]) -> (u64,u64,u64)
     where
         S: CustomShape,
         for<'b> &'b S: IntoIterator,
-        <&'a S as IntoIterator>::Item: HasXy<f64>,
+        <&'a S as IntoIterator>::Item: HasXyz<f64>,
 {
     let mut rangex = std::u64::MIN;
     let mut rangey = std::u64::MIN;
+    let mut rangez = std::u64::MIN;
     for shape in shapes{
         if shape.points_len() == 0 {
             continue;
@@ -62,19 +68,25 @@ pub fn compress_shapes_stats<'a,S>(shapes: &'a [S]) -> (u64,u64)
         let mut xmax = std::u64::MIN;
         let mut ymin = std::u64::MAX;
         let mut ymax = std::u64::MIN;
+        let mut zmin = std::u64::MAX;
+        let mut zmax = std::u64::MIN;
         for p in shape{
-            let xy = p.xy();
-            let i0 = xy.0 as u64;
-            let i1 = xy.1 as u64;
-            xmax = xmax.max(i0);
-            ymax = ymax.max(i1);
-            xmin = xmin.min(i0);
-            ymin = ymin.min(i1);
+            let xyz = p.xyz();
+            let x = xyz.0 as u64;
+            let y = xyz.1 as u64;
+            let z = xyz.2 as u64;
+            xmax = xmax.max(x);
+            ymax = ymax.max(y);
+            zmax = zmax.max(z);
+            xmin = xmin.min(x);
+            ymin = ymin.min(y);
+            zmin = zmin.min(z);
         }
         rangex = rangex.max(xmax - xmin);
         rangey = rangey.max(ymax - ymin);
+        rangez = rangez.max(zmax - zmin);
     }
-    (rangex,rangey)
+    (rangex,rangey,rangez)
 }
 
 pub fn compress_repeated_points_in_lines_stats<'a, S>(shapes: &'a [S]) -> (usize,usize)
@@ -115,14 +127,14 @@ impl std::fmt::Display for CompTarget{
     }
 }
 
-pub fn target_compression_type((_,rx,_,ry): Ranges) -> (u64, CompTarget){
+pub fn target_compression_type((_,rx,_,ry,_,rz): Ranges) -> (u64, CompTarget){
     fn get_target(range: u64) -> CompTarget{
         if range < std::u8::MAX.into(){ CompTarget::U8 }
         else if range < std::u16::MAX.into(){ CompTarget::U16 }
         else if range < std::u32::MAX.into(){ CompTarget::U32 }
         else {CompTarget::NONE }
     }
-    let max = rx.max(ry);
+    let max = rx.max(ry).max(rz);
     (max,get_target(max))
 }
 

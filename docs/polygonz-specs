@@ -1,6 +1,7 @@
 T = u16
 offx: u64,
 offy: u64,
+offz: u64,
 multi: u64,
 [
     bmin: (T,T,T), //bounding box min
