@@ -16,7 +16,7 @@ pub fn info_package<'a,S>(shapes: &'a [S]) -> (u64,u64,u64,u64,CompTarget)
     println!("shaperangex: {}, shaperangey: {}", shapesrange.0, shapesrange.1);
     let counts = compress_repeated_points_in_lines_stats(shapes);
     println!("total: {}, repeated: {}", counts.0, counts.1);
-    let (range,target)= target_compression_type(ranges);
+    let (range,target) = target_compression_type(ranges);
     let (multi,usage) = target_multiplier(range,target);
     println!("target {} with multiplier {} using {} of range", target.to_string(), multi, usage);
     (mx,my,mz,multi,target)
@@ -148,6 +148,10 @@ pub fn target_multiplier(mr: u64, target: CompTarget) -> (u64,f64){
     let m = max / mr;
     if m < 1 { panic!("Error: target_multiplier smaller than one!"); }
     (m,(m * mr) as f64 / max as f64)
+}
+
+pub fn print_height_distribution<T>(shapes: &[ShapeZ<T>]){
+    println!("Shapes: {}", shapes.len());
 }
 
 pub fn print_split_content((ps,pms,pzs,pls,plms,plzs,mps,mpms,mpzs,pgs,pgms,pgzs): &Splitted){

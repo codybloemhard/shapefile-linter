@@ -37,6 +37,10 @@ fn do_things() -> Option<()>{
 
     println!("Shapefile processor...");
     let timer = Instant::now();
+    let get_only_path = ||{
+        if infiles.is_empty() { return Option::None; }
+        Option::Some(infiles[0].clone())
+    };
     let read_single_file = |infile: String|{
         if let Ok(shapes) = shapefile::read(infile.clone()){
             println!("Read file \"{}\": {} ms", infile, timer.elapsed().as_millis());
@@ -71,7 +75,18 @@ fn do_things() -> Option<()>{
         println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
                  timer.elapsed().as_millis());
     }else if mode == "chunkify"{
-
+        let string_path = &get_only_path()?;
+        let path = std::path::Path::new(string_path);
+        let mut buffer = ReadBuffer::from_raw(buffer_read_file(&path)?);
+        let mx = u64::from_buffer(&mut buffer);
+        let my = u64::from_buffer(&mut buffer);
+        let mz = u64::from_buffer(&mut buffer);
+        let multi = u64::from_buffer(&mut buffer);
+        let bmin = <(u16,u16,u16)>::from_buffer(&mut buffer);
+        let bmax = <(u16,u16,u16)>::from_buffer(&mut buffer);
+        let shapes = <std::vec::Vec<ShapeZ<u16>> as Bufferable>::from_buffer(&mut buffer)?;
+        println!("hoi");
+        print_height_distribution(&shapes);
     }else if mode == "polygonz"{
         let shapes = read_only_file()?;
         let polys = split(shapes, &mut logger).11;
