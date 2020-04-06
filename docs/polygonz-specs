@@ -11,3 +11,7 @@ gmax: (T,T,T), // Global bounding box max
     [[(T,T,T)]], //Array of outer "rings", (x,y,z)
     [[(T,T,T)]], //Array of inner "rings", (x,y,z)
 ]
+/*
+w' = w / multi + woff, where w is x,y,z.
+This is also true for boundingboxes.
+*/
