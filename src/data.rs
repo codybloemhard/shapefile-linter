@@ -114,17 +114,17 @@ pub trait HasBB<T>{
     fn set_bounding_box(&mut self, bb: BB<T>);
 }
 
-pub trait UpdateableBB{
-    fn update_bb(&mut self);
+pub trait StretchableBB{
+    fn stretch_bb(&mut self);
 }
 
-macro_rules! ImplUpdateableBB{
+macro_rules! ImplStretchableBB{
     ($ttype:ident) => {
-        impl<T> UpdateableBB for $ttype<T>
+        impl<T> StretchableBB for $ttype<T>
             where
                 T: BoundingType + MinMax + Copy,
         {
-            fn update_bb(&mut self){
+            fn stretch_bb(&mut self){
                 if self.points_len() == 0 { return; }
                 let mut bb = T::start_box();
                 let b: &$ttype<T> = self.borrow();
@@ -137,8 +137,29 @@ macro_rules! ImplUpdateableBB{
     }
 }
 
-ImplUpdateableBB!(ShapeZ);
-ImplUpdateableBB!(PolygonZ);
+ImplStretchableBB!(ShapeZ);
+ImplStretchableBB!(PolygonZ);
+
+pub trait UpdateableBB{
+    fn update_bb(&mut self);
+}
+
+impl<T> UpdateableBB for ShapeZ<T>
+    where
+        T: BoundingType + MinMax + Copy,
+{
+    fn update_bb(&mut self){
+        let mut bb = *self.bounding_box();
+        (bb.0).2 = (bb.0).2.min_of(self.z);
+        (bb.1).2 = (bb.1).2.max_of(self.z);
+        self.set_bounding_box(bb);
+    }
+}
+
+impl<T> UpdateableBB for PolygonZ<T>
+    where
+    T: BoundingType + MinMax + Copy,
+{ fn update_bb(&mut self){ /* noop */ } }
 
 pub fn get_global_bb<T,U>(shapes: &[U]) -> BB<T>
     where

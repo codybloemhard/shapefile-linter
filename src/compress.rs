@@ -1,8 +1,9 @@
 use bin_buffer::*;
 use crate::data::PolygonZ;
 use crate::data::Vvec;
-use crate::data::UpdateableBB;
+use crate::data::StretchableBB;
 use crate::data::get_global_bb;
+use crate::data::UpdateableBB;
 use crate::info::CompTarget;
 
 use crate::data::{ShapeZ,P3,VvP4};
@@ -49,8 +50,10 @@ macro_rules! ImplCompressable {
                     macro_rules! TargetIntoBuffer {
                         ($ttype:ident) => {
                             let mut ns = $fname::<$ttype>(self,mx,my,multi);
+                            ns.iter_mut().for_each(|x| x.stretch_bb());
                             ns.iter_mut().for_each(|x| x.update_bb());
                             let bb = get_global_bb(&ns);
+                            println!("Global Boundingbox: {:?}", bb);
                             bb.into_buffer(&mut buffer);
                             ns.into_buffer(&mut buffer);
                         };
@@ -60,7 +63,7 @@ macro_rules! ImplCompressable {
                         CompTarget::U16 => { TargetIntoBuffer!(u16); },
                         CompTarget::U32 => { TargetIntoBuffer!(u32); },
                         CompTarget::NONE => {
-                            self.iter_mut().for_each(|x| x.update_bb());
+                            self.iter_mut().for_each(|x| x.stretch_bb());
                             let bb = get_global_bb(&self);
                             bb.into_buffer(&mut buffer);
                             self.into_buffer(&mut buffer);

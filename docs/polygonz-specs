@@ -3,6 +3,8 @@ offx: u64,
 offy: u64,
 offz: u64,
 multi: u64,
+gmin: (T,T,T), // Global bounding box min
+gmax: (T,T,T), // Global bounding box max
 [
     bmin: (T,T,T), //bounding box min
     bmax: (T,T,T), //bounding box max
