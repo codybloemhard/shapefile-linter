@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use crate::logger::*;
 use super::data::*;
 use shapefile::*;
 
@@ -150,8 +152,55 @@ pub fn target_multiplier(mr: u64, target: CompTarget) -> (u64,f64){
     (m,(m * mr) as f64 / max as f64)
 }
 
-pub fn print_height_distribution<T>(shapes: &[ShapeZ<T>]){
+pub fn print_height_distribution<T>(shapes: &[ShapeZ<T>])
+    where
+        T: std::hash::Hash + std::cmp::Eq + std::fmt::Display + std::cmp::Ord
+{
     println!("Shapes: {}", shapes.len());
+    let mut distr = HashMap::new();
+    for shape in shapes{
+        let z = &shape.z;
+        let nc = match distr.get(&z){
+            Some(count) => count + 1,
+            None => 1,
+        };
+        distr.insert(z, nc);
+    }
+    let mut vec = Vec::new();
+    for item in &distr{
+        vec.push(item);
+    }
+    vec.sort_by_key(|x| x.0);
+    for (z,c) in vec{
+        println!("{}: {}", z, c);
+    }
+}
+
+pub fn collect_wrong_heightlines(shapes: VvP4, logger: &mut Logger)
+    -> Vvec<f64>
+{
+    let mut wrong = Vec::new();
+    for shape in shapes{
+        if shape.is_empty(){
+            logger.log(Issue::EmptyShape);
+            continue;
+        }
+        let mut is_wrong = false;
+        let z = shape[0].2;
+        for point in &shape{
+            if (point.2 - z).abs() > std::f64::EPSILON{
+                is_wrong = true;
+                break;
+            }
+        }
+        if !is_wrong { continue; }
+        let mut vec = Vec::new();
+        for point in shape{
+            vec.push(point.2);
+        }
+        wrong.push(vec);
+    }
+    wrong
 }
 
 pub fn print_split_content((ps,pms,pzs,pls,plms,plzs,mps,mpms,mpzs,pgs,pgms,pgzs): &Splitted){
