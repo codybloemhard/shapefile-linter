@@ -19,6 +19,22 @@ pub type VvP2 = Vvec<P2<f64>>;
 pub type VvP3 = Vvec<P3<f64>>;
 pub type VvP4 = Vvec<P4<f64>>;
 
+pub trait HasXy<T>{
+    fn xy(&self) -> (T,T);
+}
+
+impl<T: Copy + Default> HasXy<T> for &(T,T){
+    fn xy(&self) -> (T,T){
+        **self
+    }
+}
+
+impl <T: Copy + Default> HasXy<T> for &(T,T,T){
+    fn xy(&self) -> (T,T){
+        (self.0,self.1)
+    }
+}
+
 pub trait HasXyz<T>{
     fn xyz(&self) -> (T,T,T);
 }
@@ -54,12 +70,23 @@ macro_rules! ImplMinMax {
     };
 }
 
-ImplMinMax!(f64);
-ImplMinMax!(f32);
-ImplMinMax!(u64);
-ImplMinMax!(u32);
-ImplMinMax!(u16);
-ImplMinMax!(u8);
+ImplMinMax!(f64);ImplMinMax!(f32);ImplMinMax!(u64);ImplMinMax!(u32);ImplMinMax!(u16);ImplMinMax!(u8);
+
+pub trait TTSub{
+    fn sub(self, b: Self) -> Self;
+}
+
+macro_rules! ImplTTSub{
+    ($ttype:ident) => {
+        impl TTSub for $ttype{
+            fn sub(self, b: Self) -> Self{
+                self - b
+            }
+        }
+    }
+}
+
+ImplTTSub!(f64);ImplTTSub!(f32);ImplTTSub!(u64);ImplTTSub!(u32);ImplTTSub!(u16);ImplTTSub!(u8);
 
 pub trait Bounded<T>{
     fn stretch_bound(self, bb: &mut BB<T>);

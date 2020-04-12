@@ -10,12 +10,14 @@ pub mod data;
 pub mod info;
 pub mod compress;
 pub mod logger;
+pub mod chunkify;
 
 use info::*;
 use compress::*;
 use logger::*;
 use data::*;
 use crate::data::{PolygonZ};
+use chunkify::*;
 
 fn main(){
     do_things();
@@ -114,11 +116,12 @@ fn do_things() -> Option<()>{
         let my = u64::from_buffer(&mut buffer)?;
         let mz = u64::from_buffer(&mut buffer)?;
         let multi = u64::from_buffer(&mut buffer)?;
-        let _bmin = <(u16,u16,u16)>::from_buffer(&mut buffer);
-        let _bmax = <(u16,u16,u16)>::from_buffer(&mut buffer);
+        let bmin = <(u16,u16,u16)>::from_buffer(&mut buffer)?;
+        let bmax = <(u16,u16,u16)>::from_buffer(&mut buffer)?;
         let shapes = <std::vec::Vec<ShapeZ<u16>> as Bufferable>::from_buffer(&mut buffer)?;
         println!("mx: {} my: {} mz: {} multi: {}", mx, my, mz, multi);
         print_height_distribution(&shapes);
+        cut(2, mx, my, multi, (bmin,bmax), &shapes, &mut logger);
     }else if mode == "polygonz"{
         let shapes = read_only_file()?;
         let polys = split(shapes, &mut logger).11;

@@ -9,6 +9,14 @@ use crate::info::CompTarget;
 use crate::data::{ShapeZ,P3,VvP4};
 use crate::logger::*;
 
+pub trait ToU64{
+    fn to(&self) -> u64;
+}
+
+impl ToU64 for u8 { fn to(&self) -> u64 { *self as u64 } }
+impl ToU64 for u16 { fn to(&self) -> u64 { *self as u64 } }
+impl ToU64 for u32 { fn to(&self) -> u64 { *self as u64 } }
+
 pub trait FromU64{
     fn from(x: u64) -> Self;
 }

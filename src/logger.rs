@@ -6,6 +6,7 @@ pub enum Issue{
     TwoPlusZInHeightline,
     UnsupportedShape,
     EmptyShape,
+    MultiChunkShape,
 }
 
 #[derive(Default)]
@@ -35,6 +36,8 @@ impl Logger{
                     println!("({} times) Currently Unsupported Shape!", count),
                 Issue::EmptyShape =>
                     println!("({} times) Empty shape!", count),
+                Issue::MultiChunkShape =>
+                    println!("({} times) Multi chunk shape!", count),
             }
         }
     }
