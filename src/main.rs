@@ -121,7 +121,14 @@ fn do_things() -> Option<()>{
         let shapes = <std::vec::Vec<ShapeZ<u16>> as Bufferable>::from_buffer(&mut buffer)?;
         println!("mx: {} my: {} mz: {} multi: {}", mx, my, mz, multi);
         print_height_distribution(&shapes);
-        cut(2, mx, my, multi, (bmin,bmax), &shapes, &mut logger);
+        for (x,y,chunk) in cut(12, (bmin,bmax), &shapes, &mut logger){
+            let mut buffer = Vec::new();
+            x.into_buffer(&mut buffer);
+            y.into_buffer(&mut buffer);
+            chunk.into_buffer(&mut buffer);
+            let ok = buffer_write_file(&Path::new(&format!("{}-{}.chunk", x, y)), &buffer);
+            println!("Writing chunk ({},{}) ok?: {}, {} ms", x, y, ok, timer.elapsed().as_millis());
+        }
     }else if mode == "polygonz"{
         let shapes = read_only_file()?;
         let polys = split(shapes, &mut logger).11;

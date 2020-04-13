@@ -172,8 +172,9 @@ pub fn print_height_distribution<T>(shapes: &[ShapeZ<T>])
     }
     vec.sort_by_key(|x| x.0);
     for (z,c) in vec{
-        println!("{}: {}", z, c);
+        print!("{}: {}, ", z, c);
     }
+    println!();
 }
 
 pub fn collect_wrong_heightlines(shapes: VvP4, logger: &mut Logger)
