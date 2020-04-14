@@ -11,6 +11,7 @@ pub mod info;
 pub mod compress;
 pub mod logger;
 pub mod chunkify;
+pub mod triangulate;
 
 use info::*;
 use compress::*;
@@ -18,6 +19,7 @@ use logger::*;
 use data::*;
 use crate::data::{PolygonZ};
 use chunkify::*;
+use triangulate::*;
 
 fn main(){
     do_things();
