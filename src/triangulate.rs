@@ -5,8 +5,7 @@ pub struct PolyTriangles{
     indices: Vec<usize>,
 }
 
-pub fn triangulate<T>(polyzs: Vec<PolygonZ<T>>) -> Vec<PolyTriangles>
-    where T: Copy,
+pub fn triangulate(polyzs: Vec<PolygonZ<f64>>) -> Vec<PolyTriangles>
 {
     let mut res = Vec::new();
     res

@@ -135,12 +135,13 @@ fn do_things() -> Option<()>{
         let shapes = read_only_file()?;
         let polys = split(shapes, &mut logger).11;
         let polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(PolygonZ::from).collect();
-        let infos = info_package(&polyzs);
-        let buffer = polyzs.compress(infos);
-        println!("Bufferized: {} ms", timer.elapsed().as_millis());
-        let ok = buffer_write_file(&Path::new(&outfile), &buffer);
-        println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
-                 timer.elapsed().as_millis());
+        let triangles = triangulate(polyzs);
+        // let infos = info_package(&polyzs);
+        // let buffer = polyzs.compress(infos);
+        // println!("Bufferized: {} ms", timer.elapsed().as_millis());
+        // let ok = buffer_write_file(&Path::new(&outfile), &buffer);
+        // println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
+        //          timer.elapsed().as_millis());
     }else if mode == "height"{
         let shapes = read_only_file()?;
         let all = split(shapes, &mut logger);
