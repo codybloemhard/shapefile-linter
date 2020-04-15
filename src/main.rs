@@ -123,14 +123,36 @@ fn do_things() -> Option<()>{
         let shapes = <std::vec::Vec<ShapeZ<u16>> as Bufferable>::from_buffer(&mut buffer)?;
         println!("mx: {} my: {} mz: {} multi: {}", mx, my, mz, multi);
         print_height_distribution(&shapes);
-        for (x,y,chunk) in cut(12, (bmin,bmax), &shapes, &mut logger){
-            let mut buffer = Vec::new();
-            x.into_buffer(&mut buffer);
-            y.into_buffer(&mut buffer);
-            chunk.into_buffer(&mut buffer);
-            let ok = buffer_write_file(&Path::new(&format!("{}-{}.chunk", x, y)), &buffer);
-            println!("Writing chunk ({},{}) ok?: {}, {} ms", x, y, ok, timer.elapsed().as_millis());
+        let cuts_mul = 2;
+        let mut cuts = 1;
+        let mut info_buffer = Vec::new();
+        let levels = 5u64;
+        levels.into_buffer(&mut info_buffer);
+        let mods = vec![100,50,20,10,1];
+        for i in 0..levels{
+            for (x,y,chunk) in cut(cuts.max(1), (bmin,bmax), &shapes, &mut logger){
+                let mut buffer = Vec::new();
+                i.into_buffer(&mut buffer);
+                x.into_buffer(&mut buffer);
+                y.into_buffer(&mut buffer);
+                let filtered = pick_heights(mods[i as usize], chunk);
+                let max = if mods[i as usize] == 1 { std::usize::MAX } else { 5000 };
+                let picked = pick_points(max, filtered);
+                picked.into_buffer(&mut buffer);
+                let ok = buffer_write_file(&Path::new(&format!("{}-{}-{}.chunk", i, x, y)), &buffer);
+                println!("Writing chunk ({},{},{}) ok?: {}, {} ms", i, x, y, ok, timer.elapsed().as_millis());
+                cuts.into_buffer(&mut info_buffer);
+            }
+            cuts *= cuts_mul;
         }
+        mx.into_buffer(&mut info_buffer);
+        my.into_buffer(&mut info_buffer);
+        mz.into_buffer(&mut info_buffer);
+        multi.into_buffer(&mut info_buffer);
+        bmin.into_buffer(&mut info_buffer);
+        bmax.into_buffer(&mut info_buffer);
+        let ok = buffer_write_file(&Path::new("chunks.info"), &info_buffer);
+        println!("Writing file \"chunks.info\" ok?: {}", ok);
     }else if mode == "polygonz"{
         let shapes = read_only_file()?;
         let polys = split(shapes, &mut logger).11;

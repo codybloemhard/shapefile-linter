@@ -9,6 +9,9 @@ use crate::compress::ToU64;
 use std::convert::TryInto;
 use crate::logger::Logger;
 use crate::logger::*;
+use crate::data::CustomShape;
+use crate::data::BoundingType;
+use crate::data::UpdateableBB;
 
 pub fn bb_in_bb_xy<T>(outer: &BB<T>, inner: &BB<T>) -> bool
     where
@@ -32,21 +35,26 @@ pub fn get_size<T>(bb: BB<T>) -> T
     w.min_of(h)
 }
 
-pub type Chunks<T> = Vec<(u64,u64,Vec<ShapeZ<T>>)>;
+pub type Chunk<T> = (u64,u64,Vec<ShapeZ<T>>);
+pub type Chunks<T> = Vec<Chunk<T>>;
 
 pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &Vec<ShapeZ<T>>, logger: &mut Logger) -> Chunks<T>
     where
-        T: Clone + ToU64
+        T: Clone + ToU64 +  BoundingType + MinMax + Copy,
 {
     let mut grid: Vvec<ShapeZ<T>> = vec![vec![]; (cuts * cuts) as usize];
     let bb0x = (gbb.0).0.to();
     let bb0y = (gbb.0).1.to();
+    if bb0x != 0 || bb0y != 0{
+        logger.log(Issue::NonOriginBoundingbox);
+        return vec![];
+    }
     let bb1x = (gbb.1).0.to();
     let bb1y = (gbb.1).1.to();
-    let gwid = bb1x - bb0x;
-    let ghei = bb1y - bb0y;
+    let gwid = bb1x;
+    let ghei = bb1y;
     let size = gwid.max(ghei);
-    let csize = size / cuts;
+    let csize = (size / cuts) + 1;
     for shape in shapes{
         let bb = shape.bounding_box();
         let x0 = (bb.0).0.to();
@@ -59,8 +67,37 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &Vec<ShapeZ<T>>, logger: &mut Logge
         let cbb = ((cx * csize, cy * csize, 0),(cx * csize + csize, cy * csize + csize,0));
         let inside = bb_in_bb_xy(&cbb, &sbb);
         if !inside {
-            logger.log(Issue::MultiChunkShape);
-            continue;
+            let mut old_cx = cx;
+            let mut old_cy = cy;
+            let mut points = Vec::new();
+            let z = shape.z;
+            for (x,y) in shape{
+                let new_cx = x.to() / csize;
+                let new_cy = y.to() / csize;
+                if new_cx == old_cx && new_cy == old_cy{
+                    points.push((*x,*y));
+                }else{
+                    let mut newshape = ShapeZ{
+                        points,
+                        z,
+                        bb: T::start_box(),
+                    };
+                    newshape.update_bb();
+                    let vpos = (old_cy * cuts + old_cx) as usize;
+                    grid[vpos].push(newshape);
+                    points = vec![(*x,*y)];
+                    old_cx = new_cx;
+                    old_cy = new_cy;
+                }
+            }
+            let mut newshape = ShapeZ{
+                points,
+                z,
+                bb: T::start_box(),
+            };
+            newshape.update_bb();
+            let vpos = (old_cy * cuts + old_cx) as usize;
+            grid[vpos].push(newshape);
         }
         let vpos = (cy * cuts + cx) as usize;
         grid[vpos].push(shape.clone());
@@ -73,4 +110,46 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &Vec<ShapeZ<T>>, logger: &mut Logge
         chunks.push((x,y,vec));
     }
     chunks
+}
+
+pub fn pick_heights<T>(modulo: u64, chunk:Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
+    where
+        T: ToU64
+{
+    let mut filtered = Vec::new();
+    for shape in chunk{
+        let z = shape.z.to();
+        if z % modulo != 0{
+            continue;
+        }
+        filtered.push(shape);
+    }
+    filtered
+}
+
+pub fn pick_points<T>(max: usize, chunk: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
+    where
+        T: Copy
+{
+    let mut ps = 0;
+    for shape in &chunk{
+        ps += shape.points_len();
+    }
+    let modulo = ps / max + 1;
+    let mut nchunk = Vec::new();
+    for shape in chunk{
+        let points = shape.points;
+        let z = shape.z;
+        let bb = shape.bb;
+        let mut npoints = Vec::new();
+        for p in points.into_iter().step_by(modulo){
+            npoints.push(p);
+        }
+        nchunk.push(ShapeZ{
+            points: npoints,
+            z,
+            bb,
+        });
+    }
+    nchunk
 }

@@ -7,6 +7,7 @@ pub enum Issue{
     UnsupportedShape,
     EmptyShape,
     MultiChunkShape,
+    NonOriginBoundingbox,
 }
 
 #[derive(Default)]
@@ -38,6 +39,8 @@ impl Logger{
                     println!("({} times) Empty shape!", count),
                 Issue::MultiChunkShape =>
                     println!("({} times) Multi chunk shape!", count),
+                Issue::NonOriginBoundingbox =>
+                    println!("({} times) Mother chunk left top bounding box is not at origin!", count),
             }
         }
     }
