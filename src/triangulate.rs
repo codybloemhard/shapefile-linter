@@ -29,6 +29,10 @@ pub fn triangulate(polyzs: Vec<PolygonZ<f64>>) -> Vec<PolyTriangles>
         //if vertices[0] == vertices[vertices.len()-1]{vertices.pop();}
         let indices = make_indices(&vertices);
 
+        for (i,index) in indices.iter().enumerate(){
+            println!("{}: {}", i, index);
+        }
+
         break;
     }
 
@@ -142,15 +146,40 @@ fn make_indices(vertices: &Vec<P3<f64>>) -> Vec<usize>{
         i+=1;
     }
 
-    for (i,point) in remaining_polygon.iter().enumerate(){
-        if(i > 100) {break}
-        println!("index: {}, reflex: {}, ear: {}", i, point.reflex, point.ear);
+    let mut indices = Vec::new();
+
+    let mut cur_index = orig_indices[0];
+
+    while(remaining_polygon.len() > 3){
+        let cur = remaining_polygon.get(cur_index).unwrap();
+        if !cur.ear {
+            cur_index = next_index_cyclic(&remaining_polygon, cur_index);
+            continue
+        }
+
+        indices.push(prev_cyclic(&remaining_polygon,cur_index).index);
+        indices.push(cur.index);
+        indices.push(next_cyclic(&remaining_polygon,cur_index).index);
+
+        let mut prev_index = prev_index_cyclic(&remaining_polygon,cur_index);
+        let mut next_index = next_index_cyclic(&remaining_polygon, cur_index);
+        remaining_polygon.remove(cur_index);
+
+        if(next_index_cyclic(&remaining_polygon, prev_index) != next_index){
+            panic!("help");
+        }
+        
+        update(&mut remaining_polygon, prev_index);
+        update(&mut remaining_polygon, next_index);
+
+        cur_index = prev_index;
     }
 
-    //let mut indices = Vec::new();
+    for point in remaining_polygon{
+        indices.push(point.index);
+    }
 
-
-    return Vec::new();
+    return indices;
 }
 
 fn next_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> &T{
@@ -167,6 +196,58 @@ fn prev_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> &T{
     }else{
         return polygon.back().unwrap();
     }
+}
+
+//very slow to be cyclic, but don't know how to do better with this library
+fn next_index_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> Index<T>{
+    if let Some(y) = polygon.get_next_index(i){
+        return y;
+    }else{
+        //return the first index
+        let indices = polygon.indices();
+        let mut cur = polygon.get_previous_index(i).unwrap();
+        for index in indices{
+            cur = index;
+            break;
+        }
+        return cur;
+    }
+}
+
+//very slow to be cyclic, but don't know how to do better with this library
+fn prev_index_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> Index<T>{
+    if let Some(y) = polygon.get_previous_index(i){
+        return y;
+    }else{
+        //return the first index
+        let indices = polygon.indices();
+        let mut cur = polygon.get_next_index(i).unwrap(); //random value
+        for index in indices{
+            cur = index;
+        }
+        return cur;
+    }
+}
+
+ fn update(polygon: &mut VecList<PolyPoint>, i: Index<PolyPoint>){
+    let mut ear = false;
+    let mut reflex = false;
+    let p = polygon.get(i).unwrap();
+    if !p.reflex {
+        ear = is_ear(polygon, i);
+        //convex points will stay convex
+    }
+    else{
+        //reflex points might become convex
+        reflex = is_reflex(polygon, i);
+        //..and might become an ear
+        if !reflex{
+            ear = is_ear(polygon, i);
+        }
+    }
+    let mut p_mut = polygon.get_mut(i).unwrap();
+    p_mut.reflex = reflex;
+    p_mut.ear = ear;
 }
 
 fn is_reflex(polygon: &VecList<PolyPoint>, i: Index<PolyPoint>) -> bool{
@@ -204,16 +285,6 @@ fn is_inside_triangle(p:P3<f64>,p0:P3<f64>,p1:P3<f64>,p2:P3<f64>) -> bool{
     let y2 = p1.1;
     let x3 = p2.0;
     let y3 = p2.1;
-    print!("x: {}, ", x);
-    print!("y: {}, ", y);
-    print!("x1: {}, ", x1);
-    print!("y1: {}, ", y1);
-    print!("x2: {}, ", x2);
-    print!("y2: {}, ", y2);
-    print!("x3: {}, ", x3);
-    print!("y3: {}, ", y3);
-
-    panic!("test");
 
     let denominator = (y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3);
     let a = ((y2 - y3)*(x - x3) + (x3 - x2)*(y - y3)) / denominator;
