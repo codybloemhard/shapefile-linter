@@ -23,20 +23,28 @@ pub fn triangulate(polyzs: Vec<PolygonZ<f64>>) -> Vec<PolyTriangles>
 
     for mut polygon in polyzs{
         //still need to group inner and outer rings
-
-        let mut vertices = merge_inner(&mut polygon.outers[0], polygon.inners);
+        //let mut vertices = create_test();
+        let mut original_vertices = &mut polygon.outers[0];
+        let mut vertices = merge_inner(&mut original_vertices, polygon.inners);
         //vertices.dedup();
-        //if vertices[0] == vertices[vertices.len()-1]{vertices.pop();}
+        if vertices[0] == vertices[vertices.len()-1]{vertices.pop();}
         let indices = make_indices(&vertices);
 
         for (i,index) in indices.iter().enumerate(){
             println!("{}: {}", i, index);
         }
-
-        break;
     }
 
     return Vec::new();
+}
+
+fn create_test() -> Vec<P3<f64>>{
+    let mut res = Vec::new();
+    res.push((0.0,0.0,0.0));
+    res.push((0.0,1.0,0.0));
+    res.push((1.0,1.0,0.0));
+    res.push((1.0,0.0,0.0));
+    return res;
 }
 
 fn merge_inner(outer: &mut Vec<P3<f64>>, mut inners: Vvec<P3<f64>>) -> Vec<P3<f64>>{
@@ -119,9 +127,11 @@ fn rightmost(inner: &Vec<P3<f64>>) -> &f64{
 }
 
 fn make_indices(vertices: &Vec<P3<f64>>) -> Vec<usize>{
+    println!("len: {}", vertices.len());
     if vertices.len() < 3 {panic!("polygon can't have fewer than 3 sides")}
 
     let mut remaining_polygon = VecList::new();
+    remaining_polygon.reserve(vertices.len()*2);
     let mut orig_indices = Vec::new();
     for (i,point) in vertices.iter().enumerate(){
         let p = PolyPoint{
@@ -139,6 +149,8 @@ fn make_indices(vertices: &Vec<P3<f64>>) -> Vec<usize>{
         value.reflex = is_reflex(clone, orig_indices[i]);
         i+=1;
     }
+
+
     i=0;
     let clone2 = &remaining_polygon.clone();
     for value in remaining_polygon.iter_mut(){
@@ -150,7 +162,18 @@ fn make_indices(vertices: &Vec<P3<f64>>) -> Vec<usize>{
 
     let mut cur_index = orig_indices[0];
 
+    let mut step = 0;
     while(remaining_polygon.len() > 3){
+        step+=1;
+
+        if(step % 10000 == 0){
+            let mut hasear = false;
+            for thing in remaining_polygon.borrow(){
+                if thing.ear{hasear = true}
+            }
+            if(!hasear){panic!("no ears left!");}
+        }        
+
         let cur = remaining_polygon.get(cur_index).unwrap();
         if !cur.ear {
             cur_index = next_index_cyclic(&remaining_polygon, cur_index);
@@ -165,15 +188,13 @@ fn make_indices(vertices: &Vec<P3<f64>>) -> Vec<usize>{
         let mut next_index = next_index_cyclic(&remaining_polygon, cur_index);
         remaining_polygon.remove(cur_index);
 
-        if(next_index_cyclic(&remaining_polygon, prev_index) != next_index){
-            panic!("help");
-        }
-        
         update(&mut remaining_polygon, prev_index);
         update(&mut remaining_polygon, next_index);
 
         cur_index = prev_index;
     }
+
+    println!("triangulation steps: {}", step);
 
     for point in remaining_polygon{
         indices.push(point.index);
@@ -205,7 +226,7 @@ fn next_index_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> Index<T>{
     }else{
         //return the first index
         let indices = polygon.indices();
-        let mut cur = polygon.get_previous_index(i).unwrap();
+        let mut cur = i;
         for index in indices{
             cur = index;
             break;
@@ -219,9 +240,9 @@ fn prev_index_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> Index<T>{
     if let Some(y) = polygon.get_previous_index(i){
         return y;
     }else{
-        //return the first index
+        //return the last index
         let indices = polygon.indices();
-        let mut cur = polygon.get_next_index(i).unwrap(); //random value
+        let mut cur = i; //random value
         for index in indices{
             cur = index;
         }
@@ -229,7 +250,7 @@ fn prev_index_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> Index<T>{
     }
 }
 
- fn update(polygon: &mut VecList<PolyPoint>, i: Index<PolyPoint>){
+fn update(polygon: &mut VecList<PolyPoint>, i: Index<PolyPoint>){
     let mut ear = false;
     let mut reflex = false;
     let p = polygon.get(i).unwrap();
@@ -245,6 +266,7 @@ fn prev_index_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> Index<T>{
             ear = is_ear(polygon, i);
         }
     }
+
     let mut p_mut = polygon.get_mut(i).unwrap();
     p_mut.reflex = reflex;
     p_mut.ear = ear;
@@ -266,9 +288,8 @@ fn is_ear(polygon: &VecList<PolyPoint>, i: Index<PolyPoint>) -> bool{
     let p = polygon.get(i).unwrap();
     let p_prev = prev_cyclic(polygon,i);
     let p_next = next_cyclic(polygon,i);
-    if p.reflex {return false}
     for node in polygon{
-        if node == p_prev || node == p || node == p_next {continue}
+        if !node.reflex || node == p_prev || node == p || node == p_next {continue}
         if is_inside_triangle(node.point, p_prev.point, p.point, p_next.point) {
             return false
         }
