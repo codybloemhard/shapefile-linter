@@ -2,7 +2,7 @@ use bin_buffer::*;
 use crate::data::{PolygonZ,Vvec,StretchableBB,get_global_bb,UpdateableBB,ShapeZ,P3,VvP4};
 use crate::info::CompTarget;
 use crate::logger::*;
-
+/// So i know i can cast it into u64, prob a stupid way
 pub trait ToU64{
     fn to(&self) -> u64;
 }
@@ -10,7 +10,7 @@ pub trait ToU64{
 impl ToU64 for u8 { fn to(&self) -> u64 { *self as u64 } }
 impl ToU64 for u16 { fn to(&self) -> u64 { *self as u64 } }
 impl ToU64 for u32 { fn to(&self) -> u64 { *self as u64 } }
-
+/// So i know i can cast from u64, prob also stupid
 pub trait FromU64{
     fn from(x: u64) -> Self;
 }
@@ -18,29 +18,29 @@ pub trait FromU64{
 impl FromU64 for u8{ fn from(x: u64) -> Self{ x as u8 } }
 impl FromU64 for u16{ fn from(x: u64) -> Self{ x as u16 } }
 impl FromU64 for u32{ fn from(x: u64) -> Self{ x as u32 } }
-
+/// Peform compression by using a range offset and multiplier
 pub trait OffScaleFromU64{
     fn offscale(x: f64, o: u64, m: u64) -> Self;
 }
-
+/// Generic implementation
 impl<T: FromU64> OffScaleFromU64 for T{
     fn offscale(x: f64, o: u64, m: u64) -> Self{
         T::from(((x - o as f64) * m as f64).round() as u64)
     }
 }
-
+/// We must be able to cast a bounding box to the right type as well
 fn bb_to_t<T: FromU64>(bb: (P3<f64>,P3<f64>)) -> (P3<T>,P3<T>){
     (
         (T::from((bb.0).0 as u64), T::from((bb.0).1 as u64), T::from((bb.0).2 as u64)),
         (T::from((bb.1).0 as u64), T::from((bb.1).1 as u64), T::from((bb.1).2 as u64)),
     )
 }
-
+/// Ability to be convertable to a compressed buffer
 pub trait Compressable
 {
     fn compress(self, infos: (u64,u64,u64,u64,CompTarget)) -> Buffer;
 }
-
+/// Macro that builds a generic implementation of Compressable
 macro_rules! ImplCompressable {
     ($btype:ty,$fname:ident) => {
         impl Compressable for $btype
@@ -76,10 +76,11 @@ macro_rules! ImplCompressable {
         }
     };
 }
-
+/// Actually implement it for the needed types
 ImplCompressable!(Vec<ShapeZ<f64>>,compress_shapez_into);
 ImplCompressable!(Vec<PolygonZ<f64>>,compress_polygonz_into);
-
+/// Take ShapeZ of f64 and turn into ShapeZ of given T
+/// Used to implement Compressable
 pub fn compress_shapez_into<T: Bufferable + FromU64>
     (shapezs: Vec<ShapeZ<f64>>, mx: u64, my: u64, multi: u64) -> Vec<ShapeZ<T>>{
     let mut nshapezs = Vec::new();
@@ -98,7 +99,7 @@ pub fn compress_shapez_into<T: Bufferable + FromU64>
     }
     nshapezs
 }
-
+/// Same as above but for PolygonZ
 pub fn compress_polygonz_into<T: Bufferable + FromU64>
     (polygonzs: Vec<PolygonZ<f64>>, mx: u64, my: u64, multi: u64) -> Vec<PolygonZ<T>>{
     let mut npolygonzs = Vec::new();
@@ -125,7 +126,8 @@ pub fn compress_polygonz_into<T: Bufferable + FromU64>
     }
     npolygonzs
 }
-
+/// Specific commpression method for heightmaps
+/// Does nothing with value types, removes redundant data
 pub fn compress_heightmap(shapes: VvP4, logger: &mut Logger)
     -> Vec<ShapeZ<f64>>{
     let mut shapezs = Vec::new();

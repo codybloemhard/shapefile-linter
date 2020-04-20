@@ -26,6 +26,7 @@ fn main(){
 }
 
 fn do_things() -> Option<()>{
+    /// Set up cli arguments
     let args = lapp::parse_args("
     Preprocess shapefiles into more efficient files.
       <inputfile> (string...) input file(s) name(s)
@@ -41,10 +42,12 @@ fn do_things() -> Option<()>{
 
     println!("Shapefile processor...");
     let timer = Instant::now();
+    /// Take one file
     let get_only_path = ||{
         if infiles.is_empty() { return Option::None; }
         Option::Some(infiles[0].clone())
     };
+    /// Take all files
     let read_single_file = |infile: String|{
         if let Ok(shapes) = shapefile::read(infile.clone()){
             println!("Read file \"{}\": {} ms, shapes: {}", infile, timer.elapsed().as_millis(), shapes.len());
@@ -54,10 +57,12 @@ fn do_things() -> Option<()>{
             Option::None
         }
     };
+    /// Read one file, assume it's the only one, more can't hurt.
     let read_only_file = ||{
         if infiles.is_empty() { return Option::None; }
         read_single_file(infiles[0].clone())
     };
+    /// Compress and bufferize and write collection.
     macro_rules! compress_and_write{
         ($col:expr) =>{
             let infos = info_package(&$col);
@@ -67,12 +72,12 @@ fn do_things() -> Option<()>{
                      timer.elapsed().as_millis());
         }
     }
-    if mode == "info"{
+    if mode == "info"{/// Just print info about shapefile content.
         let shapes = read_only_file()?;
         print_shape_content(&shapes);
         let splitted = split(shapes, &mut logger);
         print_split_content(&splitted);
-    }else if mode == "mergeheight"{
+    }else if mode == "mergeheight"{/// Take many heightfiles and combine them into one big compressed one.
         println!("{:?}", infiles);
         let mut collection = Vec::new();
         for file in infiles{
@@ -82,7 +87,7 @@ fn do_things() -> Option<()>{
             collection.append(&mut shapezs);
         }
         compress_and_write!(collection);
-    }else if mode == "lintheight"{
+    }else if mode == "lintheight"{/// Print info about heightlines
         let mut wrongs = Vec::new();
         for file in infiles{
             let read = read_single_file(file)?;
@@ -115,7 +120,7 @@ fn do_things() -> Option<()>{
         println!("mean: {}", mean);
         println!("min: {}", min);
         println!("max: {}", max);
-    }else if mode == "chunkify"{
+    }else if mode == "chunkify"{/// Take one compressed height file and build chunks from it.
         let string_path = &get_only_path()?;
         let path = std::path::Path::new(string_path);
         let mut buffer = ReadBuffer::from_raw(buffer_read_file(&path)?);
@@ -158,7 +163,7 @@ fn do_things() -> Option<()>{
         bmax.into_buffer(&mut info_buffer);
         let ok = buffer_write_file(&Path::new("chunks.info"), &info_buffer);
         println!("Writing file \"chunks.info\" ok?: {}", ok);
-    }else if mode == "polygonz"{
+    }else if mode == "polygonz"{/// Take shapefile and compress the polygonZ's into triangles.
         let shapes = read_only_file()?;
         let polys = split(shapes, &mut logger).11;
         let polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(PolygonZ::from).collect();
@@ -169,7 +174,7 @@ fn do_things() -> Option<()>{
         // let ok = buffer_write_file(&Path::new(&outfile), &buffer);
         // println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
         //          timer.elapsed().as_millis());
-    }else if mode == "height"{
+    }else if mode == "height"{/// Compress shapefile, assuming it consist of height lines.
         let shapes = read_only_file()?;
         let all = split(shapes, &mut logger);
         let plinezs = all.5;
