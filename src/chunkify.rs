@@ -1,29 +1,15 @@
-use crate::data::ShapeZ;
-use crate::data::Vvec;
-use crate::data::BB;
-use crate::data::HasXy;
-use crate::data::MinMax;
-use crate::data::TTSub;
-use crate::data::HasBB;
+use crate::data::{ShapeZ, Vvec,BB,MinMax,TTSub,HasBB,CustomShape,BoundingType,UpdateableBB};
 use crate::compress::ToU64;
-use std::convert::TryInto;
-use crate::logger::Logger;
 use crate::logger::*;
-use crate::data::CustomShape;
-use crate::data::BoundingType;
-use crate::data::UpdateableBB;
 
 pub fn bb_in_bb_xy<T>(outer: &BB<T>, inner: &BB<T>) -> bool
     where
         T: std::cmp::PartialOrd
 {
-    if (outer.0).0 < (inner.0).0 &&
+    (outer.0).0 < (inner.0).0 &&
         (outer.0).1 < (inner.0).1 &&
         (outer.1).0 > (inner.1).0 &&
         (outer.1).1 > (inner.1).1
-        { true }
-    else
-        { false }
 }
 
 pub fn get_size<T>(bb: BB<T>) -> T
@@ -38,7 +24,7 @@ pub fn get_size<T>(bb: BB<T>) -> T
 pub type Chunk<T> = (u64,u64,Vec<ShapeZ<T>>);
 pub type Chunks<T> = Vec<Chunk<T>>;
 
-pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &Vec<ShapeZ<T>>, logger: &mut Logger) -> Chunks<T>
+pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) -> Chunks<T>
     where
         T: Clone + ToU64 +  BoundingType + MinMax + Copy,
 {
@@ -127,7 +113,7 @@ pub fn pick_heights<T>(modulo: u64, chunk:Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     filtered
 }
 
-pub fn pick_points<T>(max: usize, chunk: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
+pub fn pick_points<T>(max: usize, mut chunk: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     where
         T: Copy
 {
@@ -137,7 +123,9 @@ pub fn pick_points<T>(max: usize, chunk: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     }
     let modulo = ps / max + 1;
     let mut nchunk = Vec::new();
-    for shape in chunk{
+    chunk.sort_by(|a,b| a.points_len().cmp(&b.points_len()));
+    println!("shapes: {}", chunk.len());
+    for shape in chunk.into_iter(){
         let points = shape.points;
         let z = shape.z;
         let bb = shape.bb;

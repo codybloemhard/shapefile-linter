@@ -1,12 +1,6 @@
 use bin_buffer::*;
-use crate::data::PolygonZ;
-use crate::data::Vvec;
-use crate::data::StretchableBB;
-use crate::data::get_global_bb;
-use crate::data::UpdateableBB;
+use crate::data::{PolygonZ,Vvec,StretchableBB,get_global_bb,UpdateableBB,ShapeZ,P3,VvP4};
 use crate::info::CompTarget;
-
-use crate::data::{ShapeZ,P3,VvP4};
 use crate::logger::*;
 
 pub trait ToU64{

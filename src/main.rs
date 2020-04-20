@@ -58,6 +58,15 @@ fn do_things() -> Option<()>{
         if infiles.is_empty() { return Option::None; }
         read_single_file(infiles[0].clone())
     };
+    macro_rules! compress_and_write{
+        ($col:expr) =>{
+            let infos = info_package(&$col);
+            let buffer = $col.compress(infos);
+            let ok = buffer_write_file(&Path::new(&outfile), &buffer);
+            println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
+                     timer.elapsed().as_millis());
+        }
+    }
     if mode == "info"{
         let shapes = read_only_file()?;
         print_shape_content(&shapes);
@@ -72,11 +81,7 @@ fn do_things() -> Option<()>{
             let mut shapezs = compress_heightmap(plinezs, &mut logger);
             collection.append(&mut shapezs);
         }
-        let infos = info_package(&collection);
-        let buffer = collection.compress(infos);
-        let ok = buffer_write_file(&Path::new(&outfile), &buffer);
-        println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
-                 timer.elapsed().as_millis());
+        compress_and_write!(collection);
     }else if mode == "lintheight"{
         let mut wrongs = Vec::new();
         for file in infiles{
