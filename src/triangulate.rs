@@ -19,11 +19,8 @@ struct PolyPoint{
 
 pub fn triangulate(polyzs: Vec<PolygonZ<f64>>) -> Vec<PolyTriangles>
 {
-    println!("hello frog");
-
     for mut polygon in polyzs{
         //still need to group inner and outer rings
-        //let mut vertices = create_test();
         let mut original_vertices = &mut polygon.outers[0];
         let mut vertices = merge_inner(&mut original_vertices, polygon.inners);
         //vertices.dedup();
@@ -36,15 +33,6 @@ pub fn triangulate(polyzs: Vec<PolygonZ<f64>>) -> Vec<PolyTriangles>
     }
 
     return Vec::new();
-}
-
-fn create_test() -> Vec<P3<f64>>{
-    let mut res = Vec::new();
-    res.push((0.0,0.0,0.0));
-    res.push((0.0,1.0,0.0));
-    res.push((1.0,1.0,0.0));
-    res.push((1.0,0.0,0.0));
-    return res;
 }
 
 fn merge_inner(outer: &mut Vec<P3<f64>>, mut inners: Vvec<P3<f64>>) -> Vec<P3<f64>>{
@@ -131,7 +119,7 @@ fn make_indices(vertices: &Vec<P3<f64>>) -> Vec<usize>{
     if vertices.len() < 3 {panic!("polygon can't have fewer than 3 sides")}
 
     let mut remaining_polygon = VecList::new();
-    remaining_polygon.reserve(vertices.len()*2);
+    remaining_polygon.reserve(vertices.len());
     let mut orig_indices = Vec::new();
     for (i,point) in vertices.iter().enumerate(){
         let p = PolyPoint{
@@ -166,12 +154,8 @@ fn make_indices(vertices: &Vec<P3<f64>>) -> Vec<usize>{
     while(remaining_polygon.len() > 3){
         step+=1;
 
-        if(step % 10000 == 0){
-            let mut hasear = false;
-            for thing in remaining_polygon.borrow(){
-                if thing.ear{hasear = true}
-            }
-            if(!hasear){panic!("no ears left!");}
+        if(step > vertices.len()){
+            panic!("no ears left!");
         }        
 
         let cur = remaining_polygon.get(cur_index).unwrap();
@@ -179,6 +163,8 @@ fn make_indices(vertices: &Vec<P3<f64>>) -> Vec<usize>{
             cur_index = next_index_cyclic(&remaining_polygon, cur_index);
             continue
         }
+
+        step = 0;
 
         indices.push(prev_cyclic(&remaining_polygon,cur_index).index);
         indices.push(cur.index);
@@ -219,14 +205,14 @@ fn prev_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> &T{
     }
 }
 
-//very slow to be cyclic, but don't know how to do better with this library
+//cyclic is very slow and stupid, but don't know how to do better with this library
 fn next_index_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> Index<T>{
     if let Some(y) = polygon.get_next_index(i){
         return y;
     }else{
         //return the first index
         let indices = polygon.indices();
-        let mut cur = i;
+        let mut cur = i;//random value
         for index in indices{
             cur = index;
             break;
@@ -235,7 +221,7 @@ fn next_index_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> Index<T>{
     }
 }
 
-//very slow to be cyclic, but don't know how to do better with this library
+//cyclic is very slow and stupid, but don't know how to do better with this library
 fn prev_index_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> Index<T>{
     if let Some(y) = polygon.get_previous_index(i){
         return y;
@@ -286,6 +272,7 @@ fn is_reflex(polygon: &VecList<PolyPoint>, i: Index<PolyPoint>) -> bool{
 fn is_ear(polygon: &VecList<PolyPoint>, i: Index<PolyPoint>) -> bool{
     //an ear is a point of a triangle with no other points inside
     let p = polygon.get(i).unwrap();
+    if is_reflex(polygon,i) {return false}
     let p_prev = prev_cyclic(polygon,i);
     let p_next = next_cyclic(polygon,i);
     for node in polygon{
