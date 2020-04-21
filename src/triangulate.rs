@@ -219,7 +219,7 @@ where
     outer.to_vec()
 }
 
-fn rightmost<T>(inner: &Vec<P3<T>>) -> T
+fn rightmost<T>(inner: &[P3<T>]) -> T
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + MinMax,
     f64: Into<T>
