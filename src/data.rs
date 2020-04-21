@@ -18,7 +18,7 @@ pub type Vvec<T> = Vec<Vec<T>>;
 pub type VvP2 = Vvec<P2<f64>>;
 pub type VvP3 = Vvec<P3<f64>>;
 pub type VvP4 = Vvec<P4<f64>>;
-/// Be sure it has at least 2 components
+// Be sure it has at least 2 components
 pub trait HasXy<T>{
     fn xy(&self) -> (T,T);
 }
@@ -34,7 +34,7 @@ impl <T: Copy + Default> HasXy<T> for &(T,T,T){
         (self.0,self.1)
     }
 }
-/// Be sure it has at least three components
+// Be sure it has at least three components
 pub trait HasXyz<T>{
     fn xyz(&self) -> (T,T,T);
 }
@@ -50,15 +50,15 @@ impl<T: Copy> HasXyz<T> for &(T,T,T){
         **self
     }
 }
-/// Be able to perform min,max, and have min and max values.
-/// This is because float does not implement Cmp, so i can't use normal min and max.
+// Be able to perform min,max, and have min and max values.
+// This is because float does not implement Cmp, so i can't use normal min and max.
 pub trait MinMax{
     fn minv() -> Self;
     fn maxv() -> Self;
     fn min_of(self, x: Self) -> Self;
     fn max_of(self, x: Self) -> Self;
 }
-/// Macro that can implement MinMax for given type
+// Macro that can implement MinMax for given type
 macro_rules! ImplMinMax {
     ($ttype:ident) => {
         impl MinMax for $ttype
@@ -70,14 +70,14 @@ macro_rules! ImplMinMax {
         }
     };
 }
-/// Actual implementations
+// Actual implementations
 ImplMinMax!(f64);ImplMinMax!(f32);ImplMinMax!(u64);ImplMinMax!(u32);ImplMinMax!(u16);ImplMinMax!(u8);
-/// Be able to subtract with same type
-/// Normal subtract can be for two different types
+// Be able to subtract with same type
+// Normal subtract can be for two different types
 pub trait TTSub{
     fn sub(self, b: Self) -> Self;
 }
-/// Again our friend the macro will do the work for us
+// Again our friend the macro will do the work for us
 macro_rules! ImplTTSub{
     ($ttype:ident) => {
         impl TTSub for $ttype{
@@ -87,13 +87,13 @@ macro_rules! ImplTTSub{
         }
     }
 }
-/// Actual implementations
+// Actual implementations
 ImplTTSub!(f64);ImplTTSub!(f32);ImplTTSub!(u64);ImplTTSub!(u32);ImplTTSub!(u16);ImplTTSub!(u8);
-/// These types can stretch a bounding box
+// These types can stretch a bounding box
 pub trait Bounded<T>{
     fn stretch_bound(self, bb: &mut BB<T>);
 }
-/// Any 2d value that has MinMax and Copy you can stretch a bound of your own inner type
+// Any 2d value that has MinMax and Copy you can stretch a bound of your own inner type
 impl<T: MinMax + Copy> Bounded<T> for &(T,T){
     fn stretch_bound(self, bb: &mut BB<T>){
         (bb.0).0 = (bb.0).0.min_of(self.0);
@@ -102,7 +102,7 @@ impl<T: MinMax + Copy> Bounded<T> for &(T,T){
         (bb.1).1 = (bb.1).1.max_of(self.1);
     }
 }
-/// Same for 3d values but they also effect the z(obv)
+// Same for 3d values but they also effect the z(obv)
 impl<T: MinMax + Copy> Bounded<T> for &(T,T,T){
     fn stretch_bound(self, bb: &mut BB<T>){
         (bb.0).0 = (bb.0).0.min_of(self.0);
@@ -113,17 +113,17 @@ impl<T: MinMax + Copy> Bounded<T> for &(T,T,T){
         (bb.1).2 = (bb.1).2.max_of(self.2);
     }
 }
-/// Bounding boxes can consist of these types
+// Bounding boxes can consist of these types
 pub trait BoundingType{
-    /// Default bounding box(0)
+    // Default bounding box(0)
     fn default_box() -> BB<Self> where Self: Sized;
-    /// Bounding box that can be stretched
-    /// You need to stretch it at least one time
-    /// Otherwise it is an invalid box
-    /// Since min will be bigger than max
+    // Bounding box that can be stretched
+    // You need to stretch it at least one time
+    // Otherwise it is an invalid box
+    // Since min will be bigger than max
     fn start_box() -> BB<Self> where Self: Sized;
 }
-/// Copy, Default, MinMax, Sized, are enough to make sure it can be a BoundingType
+// Copy, Default, MinMax, Sized, are enough to make sure it can be a BoundingType
 impl<T> BoundingType for T
     where
         T: Copy + Default + MinMax + Sized
@@ -138,24 +138,24 @@ impl<T> BoundingType for T
         (T::minv(),T::minv(),T::minv()))
     }
 }
-/// Every custom type of shape has points so we can know how many points it has
+// Every custom type of shape has points so we can know how many points it has
 pub trait CustomShape{
     fn points_len(&self) -> usize;
 }
-/// Indicates that a collection has a boundingbox
+// Indicates that a collection has a boundingbox
 pub trait HasBB<T>{
-    /// Return the boundingbox
+    // Return the boundingbox
     fn bounding_box(&self) -> &BB<T>;
-    /// Set the boundingbox
+    // Set the boundingbox
     fn set_bounding_box(&mut self, bb: BB<T>);
 }
-/// Indicates that it has a stretchable boundingbox
+// Indicates that it has a stretchable boundingbox
 pub trait StretchableBB{
-    /// Stretch the box using it's own points
+    // Stretch the box using it's own points
     fn stretch_bb(&mut self);
 }
-/// Macro that implements StretchableBB for us
-/// Assumes that it has HasBB
+// Macro that implements StretchableBB for us
+// Assumes that it has HasBB
 macro_rules! ImplStretchableBB{
     ($ttype:ident) => {
         impl<T> StretchableBB for $ttype<T>
@@ -174,14 +174,14 @@ macro_rules! ImplStretchableBB{
         }
     }
 }
-/// Implement for collections
+// Implement for collections
 ImplStretchableBB!(ShapeZ);
 ImplStretchableBB!(PolygonZ);
-/// When a shape can update it's own boundingbox, to be consistent with it's points afterwards
+// When a shape can update it's own boundingbox, to be consistent with it's points afterwards
 pub trait UpdateableBB{
     fn update_bb(&mut self);
 }
-/// ShapeZ kan update it's boundingbox
+// ShapeZ kan update it's boundingbox
 impl<T> UpdateableBB for ShapeZ<T>
     where
         T: BoundingType + MinMax + Copy,
@@ -198,8 +198,8 @@ impl<T> UpdateableBB for PolygonZ<T>
     where
     T: BoundingType + MinMax + Copy,
 { fn update_bb(&mut self){ /* noop */ } }
-/// Stretch a bounding box with other boundingboxes
-/// This to get the global boundingbox
+// Stretch a bounding box with other boundingboxes
+// This to get the global boundingbox
 pub fn get_global_bb<T,U>(shapes: &[U]) -> BB<T>
     where
         U: HasBB<T>,
@@ -225,14 +225,14 @@ pub fn get_global_bb<T,U>(shapes: &[U]) -> BB<T>
     }
     ((minx,miny,minz),(maxx,maxy,maxz))
 }
-/// ShapeZ: a height line, all it's points are on the same height
+// ShapeZ: a height line, all it's points are on the same height
 #[derive(Clone)]
 pub struct ShapeZ<T>{
     pub points: Vec<P2<T>>,
     pub z: T,
     pub bb: BB<T>,
 }
-/// We want to export and import ShapeZ as buffer
+// We want to export and import ShapeZ as buffer
 impl<T: Bufferable + Clone> Bufferable for ShapeZ<T>{
     fn into_buffer(self, buf: &mut Buffer){
         self.z.into_buffer(buf);
@@ -267,7 +267,7 @@ impl<T: Bufferable + Clone> Bufferable for ShapeZ<T>{
         })
     }
 }
-/// The next two are trivial
+// The next two are trivial
 impl<T> CustomShape for ShapeZ<T>{
     fn points_len(&self) -> usize{
         self.points.len()
@@ -283,12 +283,12 @@ impl<T> HasBB<T> for ShapeZ<T>{
         self.bb = bb
     }
 }
-/// An iterator state that only has a reference
+// An iterator state that only has a reference
 pub struct ShapeZIter<'a,T>{
     pub current: usize,
     pub shapez: &'a ShapeZ<T>,
 }
-/// ShapeZIter is an Iterator, it yields references to the points
+// ShapeZIter is an Iterator, it yields references to the points
 impl<'a, T> Iterator for ShapeZIter<'a, T>{
     type Item = &'a P2<T>;
 
@@ -301,7 +301,7 @@ impl<'a, T> Iterator for ShapeZIter<'a, T>{
         Option::Some(&self.shapez.points[i])
     }
 }
-/// You can take an iterator from &ShapeZ
+// You can take an iterator from &ShapeZ
 impl<'a, T> IntoIterator for &'a ShapeZ<T>{
     type Item = &'a P2<T>;
     type IntoIter = ShapeZIter<'a, T>;
@@ -313,16 +313,16 @@ impl<'a, T> IntoIterator for &'a ShapeZ<T>{
         }
     }
 }
-/// Struct for PolygonZ's
-/// Has inner and outer rings, in no order
+// Struct for PolygonZ's
+// Has inner and outer rings, in no order
 #[derive(Clone)]
 pub struct PolygonZ<T>{
     pub inners: Vvec<P3<T>>,
     pub outers: Vvec<P3<T>>,
     pub bb: BB<T>,
 }
-/// Just a function that we use to build this struct from the raw unpacked data
-/// we get from the shapfile
+// Just a function that we use to build this struct from the raw unpacked data
+// we get from the shapfile
 impl<T: Default + Copy> PolygonZ<T>{
     pub fn from(raw: Poly<P4<T>>) -> Self{
         let d = T::default();
@@ -344,7 +344,7 @@ impl<T: Default + Copy> PolygonZ<T>{
         }
     }
 }
-/// Next 3 implementations are trivial
+// Next 3 implementations are trivial
 impl<T> CustomShape for PolygonZ<T>{
     fn points_len(&self) -> usize{
         self.inners.len() + self.outers.len()
@@ -402,17 +402,17 @@ impl<T: Bufferable + Clone> Bufferable for PolygonZ<T>{
         })
     }
 }
-/// Again we need a state to iterate over the collection
-/// This one is more complicated
-/// We have to iterate over many nested vectors
-/// As if it was one long one
+// Again we need a state to iterate over the collection
+// This one is more complicated
+// We have to iterate over many nested vectors
+// As if it was one long one
 pub struct PolygonZIter<'a,T>{
     pub current: usize,
     pub outer: bool,
     pub index: usize,
     pub poly: &'a PolygonZ<T>,
 }
-/// Here we define how we actually loop over seperate nested vectors
+// Here we define how we actually loop over seperate nested vectors
 impl<'a, T> Iterator for PolygonZIter<'a, T>{
     type Item = &'a P3<T>;
     //Note: this looks very clunky but it this way because the &mut gets in the way of the & if the
@@ -456,7 +456,7 @@ impl<'a, T> Iterator for PolygonZIter<'a, T>{
         }
     }
 }
-/// And ofcouse we can turn &PolygonZ into an iterator that yields &P3
+// And ofcouse we can turn &PolygonZ into an iterator that yields &P3
 impl<'a, T> IntoIterator for &'a PolygonZ<T>{
     type Item = &'a P3<T>;
     type IntoIter = PolygonZIter<'a, T>;
@@ -470,14 +470,14 @@ impl<'a, T> IntoIterator for &'a PolygonZ<T>{
         }
     }
 }
-/// Thank the gods for recursive generic type definitions
+// Thank the gods for recursive generic type definitions
 pub type Poly<T> = (Vvec<T>,Vvec<T>);
 pub type Polys<T> = Vec<Poly<T>>;
 pub type PolysP2 = Polys<P2<f64>>;
 pub type PolysP3 = Polys<P3<f64>>;
 pub type PolysP4 = Polys<P4<f64>>;
 pub type Splitted = (VP2,VP3,VP4,VvP2,VvP3,VvP4,VvP2,VvP3,VvP4,PolysP2,PolysP3,PolysP4);
-/// Take the shapefile and turn it into seperate collections
+// Take the shapefile and turn it into seperate collections
 pub fn split(shapes: Vec<Shape>, logger: &mut Logger) -> Splitted{
     let mut points = Vec::new();
     let mut pointms = Vec::new();

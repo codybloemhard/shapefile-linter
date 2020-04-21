@@ -5,9 +5,8 @@ use shapefile::*;
 
 pub type Ranges = (u64,u64,u64,u64,u64,u64);
 
-pub fn info_package<'a,S>(shapes: &'a [S]) -> (u64,u64,u64,u64,CompTarget)
+pub fn info_package<'a,S: CustomShape>(shapes: &'a [S]) -> (u64,u64,u64,u64,CompTarget)
     where
-        S: CustomShape,
         for<'b> &'b S: IntoIterator,
         <&'a S as IntoIterator>::Item: HasXyz<f64> + PartialEq,
 {

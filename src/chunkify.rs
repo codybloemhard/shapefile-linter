@@ -1,5 +1,4 @@
 use crate::data::{ShapeZ, Vvec,BB,MinMax,TTSub,HasBB,CustomShape,BoundingType,UpdateableBB};
-use crate::compress::ToU64;
 use crate::logger::*;
 
 pub fn bb_in_bb_xy<T>(outer: &BB<T>, inner: &BB<T>) -> bool
@@ -26,27 +25,27 @@ pub type Chunks<T> = Vec<Chunk<T>>;
 
 pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) -> Chunks<T>
     where
-        T: Clone + ToU64 +  BoundingType + MinMax + Copy,
+        T: Clone + Into<u64> +  BoundingType + MinMax + Copy,
 {
     let mut grid: Vvec<ShapeZ<T>> = vec![vec![]; (cuts * cuts) as usize];
-    let bb0x = (gbb.0).0.to();
-    let bb0y = (gbb.0).1.to();
+    let bb0x = (gbb.0).0.into();
+    let bb0y = (gbb.0).1.into();
     if bb0x != 0 || bb0y != 0{
         logger.log(Issue::NonOriginBoundingbox);
         return vec![];
     }
-    let bb1x = (gbb.1).0.to();
-    let bb1y = (gbb.1).1.to();
+    let bb1x = (gbb.1).0.into();
+    let bb1y = (gbb.1).1.into();
     let gwid = bb1x;
     let ghei = bb1y;
     let size = gwid.max(ghei);
     let csize = (size / cuts) + 1;
     for shape in shapes{
         let bb = shape.bounding_box();
-        let x0 = (bb.0).0.to();
-        let y0 = (bb.0).1.to();
-        let x1 = (bb.1).0.to();
-        let y1 = (bb.1).1.to();
+        let x0 = (bb.0).0.into();
+        let y0 = (bb.0).1.into();
+        let x1 = (bb.1).0.into();
+        let y1 = (bb.1).1.into();
         let cx = x0 / csize;
         let cy = y0 / csize;
         let sbb = ((x0,y0,0),(x1,y1,0));
@@ -58,8 +57,8 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
             let mut points = Vec::new();
             let z = shape.z;
             for (x,y) in shape{
-                let new_cx = x.to() / csize;
-                let new_cy = y.to() / csize;
+                let new_cx = (*x).into() / csize;
+                let new_cy = (*y).into() / csize;
                 if new_cx == old_cx && new_cy == old_cy{
                     points.push((*x,*y));
                 }else{
@@ -100,11 +99,11 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
 
 pub fn pick_heights<T>(modulo: u64, chunk:Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     where
-        T: ToU64
+        T: Into<u64> + Copy
 {
     let mut filtered = Vec::new();
     for shape in chunk{
-        let z = shape.z.to();
+        let z = shape.z.into();
         if z % modulo != 0{
             continue;
         }

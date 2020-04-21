@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-/// Issues you can give the logger.
+// Issues you can give the logger.
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub enum Issue{
     Message(String),
@@ -16,7 +16,7 @@ pub struct Logger{
 }
 
 impl Logger{
-    /// Give an issue, A message will be printed and others will be counted.
+    // Give an issue, A message will be printed and others will be counted.
     pub fn log(&mut self, issue: Issue){
         match issue{
             Issue::Message(string) => { println!("{}", string); },
@@ -27,7 +27,7 @@ impl Logger{
             }
         }
     }
-    /// Print out all the Issues with how often they occured.
+    // Print out all the Issues with how often they occured.
     pub fn report(&self){
         for (issue, count) in self.issues.clone(){
             match issue{
