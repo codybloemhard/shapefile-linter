@@ -136,7 +136,7 @@ fn do_things() -> Option<()>{
         let shapes = read_only_file()?;
         let polys = split(shapes, &mut logger).11;
         let polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(PolygonZ::from).collect();
-        let triangles = triangulate(polyzs);
+        // let triangles = triangulate(polyzs);
         // let infos = info_package(&polyzs);
         // let buffer = polyzs.compress(infos);
         // println!("Bufferized: {} ms", timer.elapsed().as_millis());

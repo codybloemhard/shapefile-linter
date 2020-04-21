@@ -2,9 +2,9 @@ use crate::data::PolygonZ;
 use dlv_list::*;
 use crate::data::*;
 use std::cmp::Ordering;
-use std::borrow::Borrow;
+use std::ops::{Add,Sub,Div};
 
-pub struct PolyTriangles{
+pub struct PolyTriangle{
     vertices: Vec<(f64,f64)>,
     indices: Vec<usize>,
 }
@@ -17,22 +17,123 @@ struct PolyPoint{
     index: usize
 }
 
-pub fn triangulate(polyzs: Vec<PolygonZ<f64>>) -> Vec<PolyTriangles>
-{
-    for mut polygon in polyzs{
-        //still need to group inner and outer rings
-        let mut original_vertices = &mut polygon.outers[0];
-        let mut vertices = merge_inner(&mut original_vertices, polygon.inners);
-        //vertices.dedup();
-        if vertices[0] == vertices[vertices.len()-1]{vertices.pop();}
-        let indices = make_indices(&vertices);
+pub fn test(){
+    let mut polyzs = Vec::new();
 
-        for (i,index) in indices.iter().enumerate(){
-            println!("{}: {}", i, index);
+    polyzs.push(PolygonZ{
+        inners: vec![
+            vec![
+                (9.0,2.0,0.0),
+                (9.0,8.0,0.0),
+                (5.0,8.0,0.0),
+                (5.0,2.0,0.0),
+            ],
+            vec![
+                (3.0,4.0,0.0),
+                (2.5,5.0,0.0),
+                (2.0,4.0,0.0),
+            ],
+            vec![
+                (7.5,4.0,0.0),
+                (7.0,5.0,0.0),
+                (6.5,4.0,0.0),
+            ]
+        ],
+        outers: vec![
+            vec![
+                (6.0,3.0,0.0),
+                (6.0,7.0,0.0),
+                (8.0,7.0,0.0),
+                (8.0,3.0,0.0)
+            ],
+            vec![
+                (0.0,0.0,0.0),
+                (0.0,10.0,0.0),
+                (10.0,10.0,0.0),
+                (10.0,0.0,0.0)
+            ]
+        ],
+        bb: ((0.0,0.0,0.0),(0.0,0.0,0.0))
+    });
+    let res = triangulate(polyzs);
+
+    for polyt in res{
+        print!("vertices: ");
+        for vert in polyt.vertices{print!("({},{}),",vert.0,vert.1)}
+        println!();
+        print!("indices: ");
+        let mut i = 0;
+        for index in polyt.indices{
+            if i == 0 {print!("),(")}
+            print!("{},",index);
+            i = (i+1)%3;
+        }
+        println!();
+    }
+}
+
+pub fn triangulate(polyzs: Vec<PolygonZ<f64>>) -> Vec<PolyTriangle>
+{
+    let mut res = Vec::new();
+    for polygon in polyzs{
+        let grouped_polygons = group_polygons(polygon);
+
+        for (mut outer,inners) in grouped_polygons{
+            let mut vertices = merge_inner(&mut outer, inners);
+            vertices.dedup();
+            if vertices[0] == vertices[vertices.len()-1]{vertices.pop();}
+            let cur_indices = make_indices(&vertices);
+
+            let mut p2vertices = Vec::new();
+            for (x,y,_) in vertices{
+                p2vertices.push((x,y));
+            }
+            res.push(PolyTriangle{
+                vertices: p2vertices,
+                indices: cur_indices
+            });
         }
     }
+    res
+}
 
-    return Vec::new();
+fn group_polygons(polygon: PolygonZ<f64>) -> Vec<(Vec<P3<f64>>, Vvec<P3<f64>>)>{
+    //polygon polygon.outers[i] is inside inside[i] other polygons
+    let mut inside = Vec::new();
+
+    let mut grouped_inners = Vec::new();
+
+    for outer in &polygon.outers{
+        let mut count = 0;
+        for other_outer in &polygon.outers{
+            if outer == other_outer {continue}
+            if is_inside_polygon(other_outer.to_vec(), outer[0]){
+                count+=1;
+            }
+        }
+        inside.push(count);
+
+        grouped_inners.push(Vec::new());
+    }
+
+    for inner in polygon.inners{
+        //find outer polygon that's inside the most other outer polygons
+        //this is the 'most inner outer polygon', in a way, so this
+        //inner ring belongs to that
+        let mut max = -1;
+        let mut max_index = 0;
+        for (i,outer) in polygon.outers.iter().enumerate(){
+            if is_inside_polygon(outer.to_vec(), inner[0]) && inside[i] > max  {
+                max = inside[i];
+                max_index = i;
+            }
+        }
+
+        if max == -1 {panic!("inner ring not inside any outer rings")}
+
+        grouped_inners[max_index].push(inner);
+    }
+    polygon.outers.into_iter().zip(grouped_inners).collect()
 }
 
 fn merge_inner(outer: &mut Vec<P3<f64>>, mut inners: Vvec<P3<f64>>) -> Vec<P3<f64>>{
@@ -101,12 +202,12 @@ fn merge_inner(outer: &mut Vec<P3<f64>>, mut inners: Vvec<P3<f64>>) -> Vec<P3<f6
 
         *outer = new_vertices.clone();
     }
-    return outer.to_vec();
+    outer.to_vec()
 }
 
 fn rightmost(inner: &Vec<P3<f64>>) -> &f64{
     let mut rightmost = &std::f64::MIN;
-    for (x,y,z) in inner{
+    for (x,_,_) in inner{
         if x > rightmost{
             rightmost = x;
         }
@@ -114,8 +215,7 @@ fn rightmost(inner: &Vec<P3<f64>>) -> &f64{
     rightmost
 }
 
-fn make_indices(vertices: &Vec<P3<f64>>) -> Vec<usize>{
-    println!("len: {}", vertices.len());
+fn make_indices(vertices: &[P3<f64>]) -> Vec<usize>{
     if vertices.len() < 3 {panic!("polygon can't have fewer than 3 sides")}
 
     let mut remaining_polygon = VecList::new();
@@ -138,7 +238,6 @@ fn make_indices(vertices: &Vec<P3<f64>>) -> Vec<usize>{
         i+=1;
     }
 
-
     i=0;
     let clone2 = &remaining_polygon.clone();
     for value in remaining_polygon.iter_mut(){
@@ -151,10 +250,10 @@ fn make_indices(vertices: &Vec<P3<f64>>) -> Vec<usize>{
     let mut cur_index = orig_indices[0];
 
     let mut step = 0;
-    while(remaining_polygon.len() > 3){
+    while remaining_polygon.len() > 3 {
         step+=1;
 
-        if(step > vertices.len()){
+        if step > vertices.len(){
             panic!("no ears left!");
         }        
 
@@ -170,8 +269,8 @@ fn make_indices(vertices: &Vec<P3<f64>>) -> Vec<usize>{
         indices.push(cur.index);
         indices.push(next_cyclic(&remaining_polygon,cur_index).index);
 
-        let mut prev_index = prev_index_cyclic(&remaining_polygon,cur_index);
-        let mut next_index = next_index_cyclic(&remaining_polygon, cur_index);
+        let prev_index = prev_index_cyclic(&remaining_polygon,cur_index);
+        let next_index = next_index_cyclic(&remaining_polygon, cur_index);
         remaining_polygon.remove(cur_index);
 
         update(&mut remaining_polygon, prev_index);
@@ -180,59 +279,47 @@ fn make_indices(vertices: &Vec<P3<f64>>) -> Vec<usize>{
         cur_index = prev_index;
     }
 
-    println!("triangulation steps: {}", step);
-
     for point in remaining_polygon{
         indices.push(point.index);
     }
-
-    return indices;
+    indices
 }
 
 fn next_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> &T{
     if let Some(y) = polygon.get_next_index(i){
-        return polygon.get(y).unwrap();
+        polygon.get(y).unwrap()
     }else{
-        return polygon.front().unwrap();
+        polygon.front().unwrap()
     }
 }
 
 fn prev_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> &T{
     if let Some(y) = polygon.get_previous_index(i){
-        return polygon.get(y).unwrap();
+        polygon.get(y).unwrap()
     }else{
-        return polygon.back().unwrap();
+        polygon.back().unwrap()
     }
 }
 
 //cyclic is very slow and stupid, but don't know how to do better with this library
 fn next_index_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> Index<T>{
     if let Some(y) = polygon.get_next_index(i){
-        return y;
+        y
     }else{
         //return the first index
-        let indices = polygon.indices();
-        let mut cur = i;//random value
-        for index in indices{
-            cur = index;
-            break;
-        }
-        return cur;
+        let mut indices = polygon.indices();
+        indices.next().unwrap()
     }
 }
 
 //cyclic is very slow and stupid, but don't know how to do better with this library
 fn prev_index_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> Index<T>{
     if let Some(y) = polygon.get_previous_index(i){
-        return y;
+        y
     }else{
         //return the last index
         let indices = polygon.indices();
-        let mut cur = i; //random value
-        for index in indices{
-            cur = index;
-        }
-        return cur;
+        indices.last().unwrap()
     }
 }
 
@@ -266,7 +353,7 @@ fn is_reflex(polygon: &VecList<PolyPoint>, i: Index<PolyPoint>) -> bool{
     let cx = next_cyclic(polygon,i).point.0;
     let cy = next_cyclic(polygon,i).point.1;
 
-    return (bx - ax) * (cy - by) - (cx - bx) * (by - ay) > 0.0;
+    (bx - ax) * (cy - by) - (cx - bx) * (by - ay) > 0.0
 }
 
 fn is_ear(polygon: &VecList<PolyPoint>, i: Index<PolyPoint>) -> bool{
@@ -276,17 +363,17 @@ fn is_ear(polygon: &VecList<PolyPoint>, i: Index<PolyPoint>) -> bool{
     let p_prev = prev_cyclic(polygon,i);
     let p_next = next_cyclic(polygon,i);
     for node in polygon{
-        if !node.reflex || node == p_prev || node == p || node == p_next {continue}
+        if node == p_prev || node == p || node == p_next {continue}
         if is_inside_triangle(node.point, p_prev.point, p.point, p_next.point) {
             return false
         }
     }
-    return true
+    true
 }
 
 fn is_inside_triangle(p:P3<f64>,p0:P3<f64>,p1:P3<f64>,p2:P3<f64>) -> bool{
-    let x = p.0;
-    let y = p.1;
+    let x0 = p.0;
+    let y0 = p.1;
     let x1 = p0.0;
     let y1 = p0.1;
     let x2 = p1.0;
@@ -294,13 +381,38 @@ fn is_inside_triangle(p:P3<f64>,p0:P3<f64>,p1:P3<f64>,p2:P3<f64>) -> bool{
     let x3 = p2.0;
     let y3 = p2.1;
 
+    if  p==p0 || p==p1 || p==p2{
+        return false
+    }
+
     let denominator = (y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3);
-    let a = ((y2 - y3)*(x - x3) + (x3 - x2)*(y - y3)) / denominator;
-    let b = ((y3 - y1)*(x - x3) + (x1 - x3)*(y - y3)) / denominator;
-    let c = 1.0 - a - b;
+    let aa = ((y2 - y3)*(x0 - x3) + (x3 - x2)*(y0 - y3)) / denominator;
+    let bb = ((y3 - y1)*(x0 - x3) + (x1 - x3)*(y0 - y3)) / denominator;
+    let cc = 1.0 - aa - bb;
 
     //epsilon is needed because of how inner and outer polygons are merged because
     //there will be two exactly equal lines in the polygon, only in reversed order
-    let e = 0.0001;
-    return a > 0.0+e && a < 1.0-e && b > 0.0+e && b < 1.0-e && c > 0.0+e && c < 1.0-e;
+    aa >= 0.0 && aa <= 1.0 && bb >= 0.0 && bb <= 1.0 && cc >= 0.0 && cc <= 1.0
+}
+
+
+fn is_inside_polygon(polygon: Vec<P3<f64>>, p: P3<f64>)-> bool{
+    //shoot a ray to the right and count how many times it intersects the polygon
+    //even means outside, odd means inside
+    let mut intersects = 0;
+    for i in 0..polygon.len(){
+        let x1 = polygon[i].0;
+        let y1 = polygon[i].1;
+        let x2 = polygon[(i + 1) % polygon.len()].0;
+        let y2 = polygon[(i + 1) % polygon.len()].1;
+
+        let t = (p.1 - y1) / (y2 - y1);
+        if t < 0.0 || t > 1.0 {continue}
+        let x = x1 + t * (x2 - x1);
+        if x<p.0 {continue}
+
+        //there was an intersection
+        intersects+=1;
+    }
+    intersects % 2 == 1
 }
