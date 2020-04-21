@@ -83,9 +83,10 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
             newshape.update_bb();
             let vpos = (old_cy * cuts + old_cx) as usize;
             grid[vpos].push(newshape);
+        }else{
+            let vpos = (cy * cuts + cx) as usize;
+            grid[vpos].push(shape.clone());
         }
-        let vpos = (cy * cuts + cx) as usize;
-        grid[vpos].push(shape.clone());
     }
     let mut chunks = Vec::new();
     for (i,vec) in grid.into_iter().enumerate(){
