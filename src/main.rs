@@ -1,6 +1,7 @@
 extern crate lapp;
 extern crate shapefile;
 extern crate bin_buffer;
+extern crate dlv_list;
 
 use bin_buffer::*;
 use std::path::Path;
