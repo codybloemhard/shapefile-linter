@@ -134,7 +134,7 @@ fn do_things() -> Option<()>{
         println!("mx: {} my: {} mz: {} multi: {}", mx, my, mz, multi);
         print_height_distribution(&shapes);
         let cuts_mul = 2;
-        let mut cuts = 1;
+        let mut cuts = 1u64;
         let mut info_buffer = Vec::new();
         let levels = 5u64;
         levels.into_buffer(&mut info_buffer);

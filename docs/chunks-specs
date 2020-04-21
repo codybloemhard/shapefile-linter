@@ -1,0 +1,28 @@
+// Chunkify will generate a lot of files
+// One of them is chunks.info
+T: u64
+{
+[T], // amount of cuts of every level. 4 cuts means 16 chunks at that lod.
+offx: T,
+offy: T,
+offz: T,
+multi: T,
+boundingbox: ((T,T,T),(T,T,T))
+}
+// Then there is a file for every chunk
+// The name of the files are i-x-y.chunk
+// For example on lod level 3, with x = 0 and y = 2: 3-0-2.chunk
+{
+lod_level: T,
+x: T,
+y: T,
+chunk:
+[
+    {
+        z: u16, //Height of this shape
+        bb0: (u16,u16,u16), //Min boundingbox
+        bb1: (u16,u16,u16), //Max boundingbox
+        points: [(u16,u16)], //All points
+    }
+]
+}
