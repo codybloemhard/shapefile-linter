@@ -1,0 +1,1 @@
+cargo run --release ~/temp/topomaps/*/*al*.shp --mode lintheight

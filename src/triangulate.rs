@@ -168,7 +168,7 @@ where
         let mut intersect = (T::default(),T::default(),T::default());
         let mut intersect_index = 0;
         let mut best_dis = T::maxv();
-        
+
         let x3 = rightmost.0;
         let y3 = rightmost.1;
         for i in 0..outer.len(){
@@ -194,7 +194,7 @@ where
             intersect_index = (i + 1) % outer.len();
             intersect = (x,y3,z);
         }
-        
+
         let mut new_vertices= Vec::new();
         for (i,point) in outer.iter().enumerate(){
             if i == intersect_index{
@@ -277,7 +277,7 @@ where
 
         if step > vertices.len(){
             panic!("no ears left!");
-        }        
+        }
 
         let cur = remaining_polygon.get(cur_index).unwrap();
         if !cur.ear {
@@ -431,7 +431,7 @@ where
     let bb = ((y3 - y1)*(x0 - x3) + (x1 - x3)*(y0 - y3)) / denominator;
     let cc = one - aa - bb;
 
-    
+
     //epsilon is needed because of how inner and outer polygons are merged because
     //there will be two exactly equal lines in the polygon, only in reversed order
     aa >= zero && aa <= one && bb >= zero && bb <= one && cc >= zero && cc <= one

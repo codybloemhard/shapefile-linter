@@ -21,6 +21,7 @@ use data::*;
 use crate::data::{PolygonZ};
 use chunkify::*;
 use triangulate::*;
+use std::collections::HashMap;
 
 fn main(){
     do_things();
@@ -98,12 +99,33 @@ fn do_things() -> Option<()>{
         }
         println!("There are {} wrong heightlines", wrongs.len());
         let mut diffs = Vec::new();
+        let mut sames = Vec::new();
+        let mut lens = Vec::new();
         for (i,wrong) in wrongs.iter().enumerate(){
             let min = wrong.iter().fold(std::f64::MAX, |m,x| m.min(*x));
             let max = wrong.iter().fold(std::f64::MIN, |m,x| m.max(*x));
+            let mut countmap = HashMap::new();
+            for x in wrong{
+                let mut y = 0usize;
+                unsafe{ y = std::mem::transmute(x); }
+                let newcount = match countmap.get(&y){
+                    Some(n) => { n + 1 },
+                    None => { 1 },
+                };
+                countmap.insert(y, newcount);
+            }
+            let mut vec = Vec::new();
+            for item in &countmap{
+                vec.push(item);
+            }
+            vec.sort_by_key(|x| x.1);
+            let same = if vec.is_empty(){ 0 }
+            else { *vec[vec.len() - 1].1 };
             let diff = max - min;
             diffs.push(diff);
-            println!("Line {}: min: {} max: {} diff: {}", i, min, max, diff);
+            sames.push(same);
+            lens.push(wrong.len());
+            println!("Line {}: min: {} max: {} diff: {} same: {} len: {}", i, min, max, diff, same, wrong.len());
         }
         if diffs.is_empty(){
             println!("median: 0\nmean: 0");
@@ -116,11 +138,17 @@ fn do_things() -> Option<()>{
         let mut diffs: Vec<u64> = diffs.iter().map(|x| *x as u64).collect::<Vec<u64>>();
         diffs.sort();
         let median = diffs[diffs.len() / 2];
+        lens.sort();
+        sames.sort();
+        let lens_median = lens[lens.len() / 2];
+        let sames_median = sames[sames.len() / 2];
         println!("Differences between min and max in lines, summary:");
         println!("median: {}", median);
         println!("mean: {}", mean);
         println!("min: {}", min);
         println!("max: {}", max);
+        println!("length median: {}", lens_median);
+        println!("same value's median: {}", sames_median);
     }else if mode == "chunkify"{// Take one compressed height file and build chunks from it.
         let string_path = &get_only_path()?;
         let path = std::path::Path::new(string_path);
@@ -152,8 +180,8 @@ fn do_things() -> Option<()>{
                 picked.into_buffer(&mut buffer);
                 let ok = buffer_write_file(&Path::new(&format!("{}-{}-{}.chunk", i, x, y)), &buffer);
                 println!("Writing chunk ({},{},{}) ok?: {}, {} ms", i, x, y, ok, timer.elapsed().as_millis());
-                cuts.into_buffer(&mut info_buffer);
             }
+            cuts.into_buffer(&mut info_buffer);
             cuts *= cuts_mul;
         }
         mx.into_buffer(&mut info_buffer);
