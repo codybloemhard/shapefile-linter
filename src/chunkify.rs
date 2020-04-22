@@ -38,18 +38,18 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
     let bb1y = (gbb.1).1.into();
     let gwid = bb1x;
     let ghei = bb1y;
-    let size = gwid.max(ghei);
-    let csize = (size / cuts) + 1;
+    let csizex = (gwid / cuts) + 1;
+    let csizey = (ghei / cuts) + 1;
     for shape in shapes{
         let bb = shape.bounding_box();
         let x0 = (bb.0).0.into();
         let y0 = (bb.0).1.into();
         let x1 = (bb.1).0.into();
         let y1 = (bb.1).1.into();
-        let cx = x0 / csize;
-        let cy = y0 / csize;
+        let cx = x0 / csizex;
+        let cy = y0 / csizey;
         let sbb = ((x0,y0,0),(x1,y1,0));
-        let cbb = ((cx * csize, cy * csize, 0),(cx * csize + csize, cy * csize + csize,0));
+        let cbb = ((cx * csizex, cy * csizey, 0),(cx * csizex + csizex, cy * csizey + csizey,0));
         let inside = bb_in_bb_xy(&cbb, &sbb);
         if !inside {
             let mut old_cx = cx;
@@ -57,8 +57,8 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
             let mut points = Vec::new();
             let z = shape.z;
             for (x,y) in shape{
-                let new_cx = (*x).into() / csize;
-                let new_cy = (*y).into() / csize;
+                let new_cx = (*x).into() / csizex;
+                let new_cy = (*y).into() / csizey;
                 if new_cx == old_cx && new_cy == old_cy{
                     points.push((*x,*y));
                 }else{

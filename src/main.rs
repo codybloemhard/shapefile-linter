@@ -161,6 +161,7 @@ fn do_things() -> Option<()>{
         let bmax = <(u16,u16,u16)>::from_buffer(&mut buffer)?;
         let shapes = <std::vec::Vec<ShapeZ<u16>> as Bufferable>::from_buffer(&mut buffer)?;
         println!("mx: {} my: {} mz: {} multi: {}", mx, my, mz, multi);
+        println!("{:?}{:?}", bmin, bmax);
         print_height_distribution(&shapes);
         let cuts_mul = 2;
         let mut cuts = 1u64;
