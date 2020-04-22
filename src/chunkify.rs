@@ -69,8 +69,9 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
                 if new_cx == old_cx && new_cy == old_cy{
                     points.push((*x,*y));
                 }else{
-                    let epx = (*x).max_of((cbb.0).0).min_of((cbb.1).0);
-                    let epy = (*y).max_of((cbb.0).1).min_of((cbb.1).1);
+                    let epx = (*x).max_of(cx * csizex).min_of(cx * csizex + csizex);
+                    let epy = (*y).max_of(cy * csizey).min_of(cy * csizey + csizey);
+                    points.push((epx,epy));
                     let mut newshape = ShapeZ{
                         points,
                         z,
@@ -79,7 +80,7 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
                     newshape.update_bb();
                     let vpos: usize = (old_cy * cuts + old_cx).into();
                     grid[vpos].push(newshape);
-                    points = vec![(*x,*y)];
+                    points = vec![(epx,epy),(*x,*y)];
                     old_cx = new_cx;
                     old_cy = new_cy;
                 }
