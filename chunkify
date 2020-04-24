@@ -1,1 +1,4 @@
 cargo run --release merged.bin --mode chunkify
+rm -rf chunks
+mkdir chunks
+mv *.chunk *.info chunks/

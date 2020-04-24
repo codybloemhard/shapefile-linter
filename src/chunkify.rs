@@ -62,6 +62,8 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
             let mut old_cx = cx;
             let mut old_cy = cy;
             let mut points = Vec::new();
+            let mut lastx = T::default();
+            let mut lasty = T::default();
             let z = shape.z;
             for (x,y) in shape{
                 let new_cx = (*x) / csizex;
@@ -69,9 +71,9 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
                 if new_cx == old_cx && new_cy == old_cy{
                     points.push((*x,*y));
                 }else{
-                    let epx = (*x).max_of(cx * csizex).min_of(cx * csizex + csizex);
-                    let epy = (*y).max_of(cy * csizey).min_of(cy * csizey + csizey);
-                    points.push((epx,epy));
+                    // let epx = (*x).max_of(old_cx * csizex).min_of(old_cx * csizex + csizex);
+                    // let epy = (*y).max_of(old_cy * csizey).min_of(old_cy * csizey + csizey);
+                    points.push((*x,*y));
                     let mut newshape = ShapeZ{
                         points,
                         z,
@@ -80,10 +82,12 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
                     newshape.update_bb();
                     let vpos: usize = (old_cy * cuts + old_cx).into();
                     grid[vpos].push(newshape);
-                    points = vec![(epx,epy),(*x,*y)];
+                    points = vec![(lastx,lasty),(*x,*y)];
                     old_cx = new_cx;
                     old_cy = new_cy;
                 }
+                lastx = *x;
+                lasty = *y;
             }
             let mut newshape = ShapeZ{
                 points,
@@ -96,6 +100,114 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
         }else{
             let vpos = (cy * cuts + cx).into();
             grid[vpos].push(shape.clone());
+        }
+    }
+    let mut chunks = Vec::new();
+    for (i,vec) in grid.into_iter().enumerate(){
+        let i = i as u64;
+        let x = i % cuts_u64;
+        let y = i / cuts_u64;
+        chunks.push((x,y,vec));
+    }
+    chunks
+}
+
+pub fn bb_out_bb_xy<T>(outer: &BB<T>, inner: &BB<T>) -> bool
+    where
+        T: std::cmp::PartialOrd
+{
+    ((outer.0).0 > (inner.1).0 || (outer.1).0 < (inner.0).0) &&
+    ((outer.0).1 > (inner.1).1 || (outer.1).1 < (inner.0).1)
+}
+
+pub fn p_in_bb_xy<T>(x: &T, y: &T, bb: &BB<T>) -> bool
+    where
+        T: std::cmp::PartialOrd
+{
+    x >= &(bb.0).0 &&
+    x <= &(bb.1).0 &&
+    y >= &(bb.0).1 &&
+    y <= &(bb.1).1
+}
+
+pub fn cut1<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) -> Chunks<T>
+    where
+        T: Clone + Copy + Default + PartialEq + PartialOrd + Into<usize>,
+        T: FromU64 +  BoundingType + MinMax,
+        T: Div<Output = T> + Add<Output = T> + Mul<Output = T>,
+{
+    let cuts_u64 = cuts;
+    let cuts = T::from(cuts);
+    let mut grid: Vvec<ShapeZ<T>> = vec![vec![]; (cuts_u64 * cuts_u64) as usize];
+    let bb0x = (gbb.0).0;
+    let bb0y = (gbb.0).1;
+    if bb0x != T::default() || bb0y != T::default(){
+        logger.log(Issue::NonOriginBoundingbox);
+        return vec![];
+    }
+    let bb1x = (gbb.1).0;
+    let bb1y = (gbb.1).1;
+    let gwid = bb1x;
+    let ghei = bb1y;
+    let csizex = (gwid / cuts) + T::from(1u64);
+    let csizey = (ghei / cuts) + T::from(1u64);
+    for i in 0..grid.len(){
+        let i = i as u64;
+        let cx = T::from(i % cuts_u64);
+        let cy = T::from(i / cuts_u64);
+        let cbb = ((cx * csizex, cy * csizey, T::default()),
+                    (cx * csizex + csizex, cy * csizey + csizey,T::default()));
+        let mut points = Vec::new();
+        for shape in shapes{
+            let z = shape.z;
+            let bb = shape.bounding_box();
+            let x0 = (bb.0).0;
+            let y0 = (bb.0).1;
+            let x1 = (bb.1).0;
+            let y1 = (bb.1).1;
+            let sbb = ((x0,y0,T::default()),(x1,y1,T::default()));
+            let outside = bb_out_bb_xy(&cbb, &sbb);
+            if outside { continue; }
+            let mut lastx = T::default();
+            let mut lasty = T::default();
+            let mut last_in = 2;
+            for (x,y) in shape{
+                let inside = p_in_bb_xy(x,y,&cbb);
+                if !inside && last_in == 1{
+                    points.push((*x,*y));
+                    let mut newshape = ShapeZ{
+                        points,
+                        z,
+                        bb: T::start_box(),
+                    };
+                    newshape.update_bb();
+                    grid[i as usize].push(newshape);
+                    lastx = *x;
+                    lasty = *y;
+                    last_in = 0;
+                    points = Vec::new();
+                    continue;
+                }
+                if !inside && (last_in == 0 || last_in == 2){
+                    continue;
+                }
+                if last_in >= 1{
+                    points.push((*x,*y));
+                }else{
+                    points = vec![(lastx,lasty), (*x,*y)];
+                }
+                last_in = 1;
+            }
+            if !points.is_empty(){
+                let mut newshape = ShapeZ{
+                    points,
+                    z,
+                    bb: T::start_box(),
+                };
+                points = Vec::new();
+                newshape.update_bb();
+                grid[i as usize].push(newshape);
+            }
         }
     }
     let mut chunks = Vec::new();
@@ -134,7 +246,7 @@ pub fn pick_points<T>(max: usize, mut chunk: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     let modulo = ps / max + 1;
     let mut nchunk = Vec::new();
     chunk.sort_by(|a,b| a.points_len().cmp(&b.points_len()));
-    println!("shapes: {}", chunk.len());
+    println!("shapes: {}, mod: {}", chunk.len(), modulo);
     for shape in chunk.into_iter(){
         let points = shape.points;
         let z = shape.z;

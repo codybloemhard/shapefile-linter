@@ -171,15 +171,19 @@ fn do_things() -> Option<()>{
         let mods = vec![100,50,20,10,1];
         for i in 0..levels{
             for (x,y,chunk) in cut(cuts.max(1), (bmin,bmax), &shapes, &mut logger){
+                let points0 = chunk.iter().fold(0, |sum, sz| sum + sz.points_len());
                 let mut buffer = Vec::new();
                 i.into_buffer(&mut buffer);
                 x.into_buffer(&mut buffer);
                 y.into_buffer(&mut buffer);
                 let filtered = pick_heights(mods[i as usize], chunk);
+                let points1 = filtered.iter().fold(0, |sum, sz| sum + sz.points_len());
                 let max = if mods[i as usize] == 1 { std::usize::MAX } else { 5000 };
                 let picked = pick_points(max, filtered);
+                let points2 = picked.iter().fold(0, |sum, sz| sum + sz.points_len());
                 picked.into_buffer(&mut buffer);
                 let ok = buffer_write_file(&Path::new(&format!("{}-{}-{}.chunk", i, x, y)), &buffer);
+                println!("l0: {} l1: {} l2: {}", points0, points1, points2);
                 println!("Writing chunk ({},{},{}) ok?: {}, {} ms", i, x, y, ok, timer.elapsed().as_millis());
             }
             cuts.into_buffer(&mut info_buffer);
