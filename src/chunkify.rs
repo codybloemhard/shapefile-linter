@@ -127,7 +127,7 @@ pub fn pick_heights<T>(modulo: u64, chunk:Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
 
 pub fn pick_points<T>(max: usize, mut chunk: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     where
-        T: Copy
+        T: Copy + Eq
 {
     let mut ps = 0;
     for shape in &chunk{
@@ -136,14 +136,17 @@ pub fn pick_points<T>(max: usize, mut chunk: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     let modulo = ps / max + 1;
     let mut nchunk = Vec::new();
     chunk.sort_by(|a,b| a.points_len().cmp(&b.points_len()));
-    println!("shapes: {}, mod: {}", chunk.len(), modulo);
+    // println!("shapes: {}, mod: {}", chunk.len(), modulo);
     for shape in chunk.into_iter(){
         let points = shape.points;
         let z = shape.z;
         let bb = shape.bb;
         let mut npoints = Vec::new();
-        for p in points.into_iter().step_by(modulo){
-            npoints.push(p);
+        let last = points.len() - 1;
+        for (i,p) in points.into_iter().enumerate(){
+            if i % modulo == 0 || i == last{
+                npoints.push(p);
+            }
         }
         nchunk.push(ShapeZ{
             points: npoints,

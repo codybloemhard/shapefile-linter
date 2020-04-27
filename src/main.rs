@@ -168,7 +168,7 @@ fn do_things() -> Option<()>{
         let mut info_buffer = Vec::new();
         let levels = 5u64;
         levels.into_buffer(&mut info_buffer);
-        let mods = vec![200,100,50,20,1];
+        let mods = vec![400,200,100,25,1];
         for i in 0..levels{
             for (x,y,chunk) in cut(cuts.max(1), (bmin,bmax), &shapes, &mut logger){
                 let points0 = chunk.iter().fold(0, |sum, sz| sum + sz.points_len());
@@ -178,7 +178,7 @@ fn do_things() -> Option<()>{
                 y.into_buffer(&mut buffer);
                 let filtered = pick_heights(mods[i as usize], chunk);
                 let points1 = filtered.iter().fold(0, |sum, sz| sum + sz.points_len());
-                let max = if mods[i as usize] == 1 { std::usize::MAX } else { 100000 };
+                let max = if mods[i as usize] == 1 { std::usize::MAX } else { 5000 };
                 let picked = pick_points(max, filtered);
                 let points2 = picked.iter().fold(0, |sum, sz| sum + sz.points_len());
                 picked.into_buffer(&mut buffer);
@@ -195,6 +195,7 @@ fn do_things() -> Option<()>{
         multi.into_buffer(&mut info_buffer);
         bmin.into_buffer(&mut info_buffer);
         bmax.into_buffer(&mut info_buffer);
+        mods.into_buffer(&mut info_buffer);
         let ok = buffer_write_file(&Path::new("chunks.info"), &info_buffer);
         println!("Writing file \"chunks.info\" ok?: {}", ok);
     }else if mode == "polygonz"{// Take shapefile and compress the polygonZ's into triangles.
