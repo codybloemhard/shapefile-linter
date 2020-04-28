@@ -12,3 +12,4 @@ Cargo.lock
 **/*.bin
 **/*.chunk
 **/*.info
+**/*.zip

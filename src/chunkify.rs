@@ -2,6 +2,7 @@ use crate::data::{ShapeZ, Vvec,BB,MinMax,HasBB,CustomShape,BoundingType,Stretcha
 use crate::logger::*;
 use crate::compress::FromU64;
 use std::ops::{Div,Add,Mul};
+use std::borrow::Borrow;
 
 pub fn bb_in_bb_xy<T>(outer: &BB<T>, inner: &BB<T>) -> bool
     where
@@ -157,31 +158,85 @@ pub fn pick_points<T>(max: usize, mut chunk: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     nchunk
 }
 
-// pub fn optimize_lines<T>(mut old: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
-//     where
-//         T: Copy + Eq
-// {
-//     loop{
-//         let mut new = Vec::new();
-//         for shape in &old{
-//             if shape.points.len() < 2 { continue; }
-//             let first = shape.points[0];
-//             let last = shape.points[shape.points.len() - 1];
-//             for other in &old{
-//                 if shape.z != other.z { continue; }
-//                 let lfirst = other.points[0];
-//                 let llast = ohter.points[other.points.len() - 1];
-//                 if first != lfirst && first != llast && last != lfirst && last != llast{
-//                     continue;
-//                 }
-//                 let nps = if first == lfirst{
-//                     shape.points.clone().concat()
-//                 }
-//                 let mut nz = ShapeZ{
-//
-//                 }
-//             }
-//         }
-//     }
-//     new
-// }
+pub fn optimize_lines<T>(mut old: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
+    where
+        T: Copy + Eq + Default + MinMax,
+{
+    type Fl<T> = ((T,T),(T,T));
+    enum Fres { FF, FL, LF, LL };
+
+    fn get_fl<T: Copy>(shape: &ShapeZ<T>) -> Fl<T>{
+        let first = shape.points[0];
+        let last = shape.points[shape.points.len() - 1];
+        (first,last)
+    }
+
+    fn find_other<T>(shape: &ShapeZ<T>, others: &mut Vec<ShapeZ<T>>) -> Option<(Fres,ShapeZ<T>)>
+        where
+            T: PartialEq + Copy,
+    {
+        let (f0,l0) = get_fl(shape);
+        let mut fres = Fres::FF;
+        let mut ind = std::usize::MAX;
+        let b: &Vec<ShapeZ<T>> = others.borrow();
+        for (i,other) in b.iter().enumerate(){
+            if shape.z != other.z { continue; }
+            let (f1,l1) = get_fl(other);
+            if f0 == f1 { fres = Fres::FF; ind = i; break; }
+            if f0 == l1 { fres = Fres::FL; ind = i; break; }
+            if l0 == f1 { fres = Fres::LF; ind = i; break; }
+            if l0 == l1 { fres = Fres::LL; ind = i; break; }
+        }
+        if ind == std::usize::MAX{
+            None
+        }else{
+            let shape = others.swap_remove(ind);
+            Some((fres,shape))
+        }
+    }
+
+    fn reversed<T>(mut v: Vec<T>) -> Vec<T>{
+        v.reverse();
+        v
+    }
+
+    fn conc<T>(mut a: Vec<T>, b: Vec<T>) -> Vec<T>{
+        a.extend(b);
+        a
+    }
+
+    fn merge<T>(fres: Fres, shape: ShapeZ<T>, oshape: ShapeZ<T>) -> ShapeZ<T>
+        where
+            T: BoundingType + MinMax + Copy,
+    {
+        let sp = shape.points;
+        let op = oshape.points;
+        let z = shape.z;
+        let np = match fres{
+            Fres::FF => conc(reversed(sp),op),
+            Fres::FL => conc(op,sp),
+            Fres::LF => conc(sp,op),
+            Fres::LL => conc(sp,reversed(op)),
+        };
+        let mut nz = ShapeZ{
+            points: np,
+            z,
+            bb: T::start_box(),
+        };
+        nz.stretch_bb();
+        nz
+    }
+
+    let mut independents = Vec::new();
+    while !old.is_empty(){
+        let shape = old.pop().unwrap();
+        let other = find_other(&shape, &mut old);
+        if let Some((fres,oshape)) = other{
+            let news = merge(fres,shape,oshape);
+            old.push(news);
+        }else{
+            independents.push(shape);
+        }
+    }
+    independents
+}

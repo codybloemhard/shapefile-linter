@@ -166,9 +166,9 @@ fn do_things() -> Option<()>{
         let cuts_mul = 2;
         let mut cuts = 1u64;
         let mut info_buffer = Vec::new();
-        let levels = 5u64;
+        let levels = 6u64;
         levels.into_buffer(&mut info_buffer);
-        let mods = vec![400,200,100,25,1];
+        let mods = vec![400,200,100,50,5t5,5];
         for i in 0..levels{
             for (x,y,chunk) in cut(cuts.max(1), (bmin,bmax), &shapes, &mut logger){
                 let points0 = chunk.iter().fold(0, |sum, sz| sum + sz.points_len());
@@ -178,13 +178,22 @@ fn do_things() -> Option<()>{
                 y.into_buffer(&mut buffer);
                 let filtered = pick_heights(mods[i as usize], chunk);
                 let points1 = filtered.iter().fold(0, |sum, sz| sum + sz.points_len());
-                let max = if mods[i as usize] == 1 { std::usize::MAX } else { 5000 };
+                let max = if mods[i as usize] <= 5 { std::usize::MAX } else { 5000 };
                 let picked = pick_points(max, filtered);
                 let points2 = picked.iter().fold(0, |sum, sz| sum + sz.points_len());
-                picked.into_buffer(&mut buffer);
+                let lines0 = picked.len();
+                let mut lines1 = lines0;
+                let finalv = if i < 4 {
+                    let opti = optimize_lines(picked);
+                    lines1 = opti.len();
+                    opti
+                }else{
+                    picked
+                };
+                finalv.into_buffer(&mut buffer);
                 let ok = buffer_write_file(&Path::new(&format!("{}-{}-{}.chunk", i, x, y)), &buffer);
                 print!("Writing chunk ({},{},{}) ok?: {}, {} ms, ", i, x, y, ok, timer.elapsed().as_millis());
-                println!("l0: {} l1: {} l2: {}", points0, points1, points2);
+                println!("l0: {} l1: {} l2: {} s0: {} s1: {}", points0, points1, points2, lines0, lines1);
             }
             cuts.into_buffer(&mut info_buffer);
             cuts *= cuts_mul;
