@@ -8,6 +8,7 @@ offy: T,
 offz: T,
 multi: T,
 boundingbox: ((T,T,T),(T,T,T))
+[T], // height modulo of every level
 }
 // Then there is a file for every chunk
 // The name of the files are i-x-y.chunk

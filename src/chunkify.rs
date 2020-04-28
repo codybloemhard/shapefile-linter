@@ -156,3 +156,32 @@ pub fn pick_points<T>(max: usize, mut chunk: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     }
     nchunk
 }
+
+// pub fn optimize_lines<T>(mut old: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
+//     where
+//         T: Copy + Eq
+// {
+//     loop{
+//         let mut new = Vec::new();
+//         for shape in &old{
+//             if shape.points.len() < 2 { continue; }
+//             let first = shape.points[0];
+//             let last = shape.points[shape.points.len() - 1];
+//             for other in &old{
+//                 if shape.z != other.z { continue; }
+//                 let lfirst = other.points[0];
+//                 let llast = ohter.points[other.points.len() - 1];
+//                 if first != lfirst && first != llast && last != lfirst && last != llast{
+//                     continue;
+//                 }
+//                 let nps = if first == lfirst{
+//                     shape.points.clone().concat()
+//                 }
+//                 let mut nz = ShapeZ{
+//
+//                 }
+//             }
+//         }
+//     }
+//     new
+// }
