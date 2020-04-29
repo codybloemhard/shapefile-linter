@@ -128,7 +128,7 @@ pub fn pick_heights<T>(modulo: u64, chunk:Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     filtered
 }
 // Simplify the lines by just taking out every n point
-pub fn pick_points<T>(max: usize, mut chunk: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
+pub fn pick_points<T>(max: usize, chunk: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     where
         T: Copy + Eq
 {
@@ -203,7 +203,10 @@ pub fn optimize_lines<T>(mut old: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
         v
     }
     // return concatened vec
+    // we assume last a = first b
+    // and they are both non empty
     fn conc<T>(mut a: Vec<T>, b: Vec<T>) -> Vec<T>{
+        a.pop(); // remove the repeated point
         a.extend(b);
         a
     }
