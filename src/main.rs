@@ -168,7 +168,7 @@ fn do_things() -> Option<()>{
         let mut info_buffer = Vec::new();
         let levels = 6u64;
         levels.into_buffer(&mut info_buffer);
-        let mods = vec![400,200,100,50,5t5,5];
+        let mods = vec![400,200,100,50,25,5];
         for i in 0..levels{
             for (x,y,chunk) in cut(cuts.max(1), (bmin,bmax), &shapes, &mut logger){
                 let points0 = chunk.iter().fold(0, |sum, sz| sum + sz.points_len());

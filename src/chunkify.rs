@@ -3,7 +3,7 @@ use crate::logger::*;
 use crate::compress::FromU64;
 use std::ops::{Div,Add,Mul};
 use std::borrow::Borrow;
-
+// Returns true if inner is completely inside outer, else false
 pub fn bb_in_bb_xy<T>(outer: &BB<T>, inner: &BB<T>) -> bool
     where
         T: std::cmp::PartialOrd
@@ -16,7 +16,8 @@ pub fn bb_in_bb_xy<T>(outer: &BB<T>, inner: &BB<T>) -> bool
 
 pub type Chunk<T> = (u64,u64,Vec<ShapeZ<T>>);
 pub type Chunks<T> = Vec<Chunk<T>>;
-
+// take shapes, a global boundingbox and the amount of cuts to do over each axis
+// cuts the shapes into a scales regular grid
 pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) -> Chunks<T>
     where
         T: Clone + Copy + Default + PartialEq + PartialOrd + Into<usize>,
@@ -50,10 +51,10 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
         let outside = bb_out_bb_xy(&cbb, &sbb);
         if outside { continue; }
         let inside = bb_in_bb_xy(&cbb, &sbb);
-        if inside{
+        if inside{ // if the whole shape is in the chunk, just put it in
             let vpos = (cy * cuts + cx).into();
             grid[vpos].push(shape.clone());
-        }else if !shape.points.is_empty(){
+        }else if !shape.points.is_empty(){ // we need to cut the shape
             let (fx,fy) = &shape.points[0];
             let mut old_cx = (*fx) / csizex;
             let mut old_cy = (*fy) / csizey;
@@ -66,17 +67,17 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
                 let new_cy = (*y) / csizey;
                 if new_cx == old_cx && new_cy == old_cy{
                     points.push((*x,*y));
-                }else{
-                    points.push((*x,*y));
+                }else{ // if we changed chunk ...
+                    points.push((*x,*y)); // keep out of chunk point to keep the line partly inside the chunk
                     let mut newshape = ShapeZ{
                         points,
                         z,
                         bb: T::start_box(),
                     };
-                    newshape.stretch_bb();
+                    newshape.stretch_bb(); // calculate the right boundingbox
                     let vpos: usize = (old_cy * cuts + old_cx).into();
                     grid[vpos].push(newshape);
-                    points = vec![(lastx,lasty),(*x,*y)];
+                    points = vec![(lastx,lasty),(*x,*y)]; // start a new collection for the new chunk
                     old_cx = new_cx;
                     old_cy = new_cy;
                 }
@@ -87,13 +88,13 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
                 points,
                 z,
                 bb: T::start_box(),
-            };
+            }; // round up and push the last chunk
             newshape.stretch_bb();
             let vpos = (old_cy * cuts + old_cx).into();
             grid[vpos].push(newshape);
         }
     }
-    let mut chunks = Vec::new();
+    let mut chunks = Vec::new(); // just assign chunk numbers
     for (i,vec) in grid.into_iter().enumerate(){
         let i = i as u64;
         let x = i % cuts_u64;
@@ -102,7 +103,7 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
     }
     chunks
 }
-
+// true if inner is completely outside outer, else false
 pub fn bb_out_bb_xy<T>(outer: &BB<T>, inner: &BB<T>) -> bool
     where
         T: std::cmp::PartialOrd
@@ -110,7 +111,8 @@ pub fn bb_out_bb_xy<T>(outer: &BB<T>, inner: &BB<T>) -> bool
     ((outer.0).0 > (inner.1).0 || (outer.1).0 < (inner.0).0) &&
     ((outer.0).1 > (inner.1).1 || (outer.1).1 < (inner.0).1)
 }
-
+// remove heightlines that are not dividable by the modulo
+// this to have less points and make the map more readable
 pub fn pick_heights<T>(modulo: u64, chunk:Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     where
         T: Into<u64> + Copy
@@ -125,7 +127,7 @@ pub fn pick_heights<T>(modulo: u64, chunk:Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     }
     filtered
 }
-
+// Simplify the lines by just taking out every n point
 pub fn pick_points<T>(max: usize, mut chunk: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     where
         T: Copy + Eq
@@ -136,8 +138,6 @@ pub fn pick_points<T>(max: usize, mut chunk: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     }
     let modulo = ps / max + 1;
     let mut nchunk = Vec::new();
-    chunk.sort_by(|a,b| a.points_len().cmp(&b.points_len()));
-    // println!("shapes: {}, mod: {}", chunk.len(), modulo);
     for shape in chunk.into_iter(){
         let points = shape.points;
         let z = shape.z;
@@ -145,9 +145,9 @@ pub fn pick_points<T>(max: usize, mut chunk: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
         let mut npoints = Vec::new();
         let last = points.len() - 1;
         for (i,p) in points.into_iter().enumerate(){
-            if i % modulo == 0 || i == last{
-                npoints.push(p);
-            }
+            if i % modulo == 0 || i == last{ // never leave out last or first point
+                npoints.push(p); // because the lines will not fit together that way
+            } // and you will lose the opportunity to do "optimize_lines"
         }
         nchunk.push(ShapeZ{
             points: npoints,
@@ -157,20 +157,23 @@ pub fn pick_points<T>(max: usize, mut chunk: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     }
     nchunk
 }
-
+// Merge lines with the same start or end point
+// Will result in less lines and less points
+// Will increase drawing performance if you have lots of lines with not so much points
+// As you will have in low LOD chunks
 pub fn optimize_lines<T>(mut old: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     where
         T: Copy + Eq + Default + MinMax,
 {
     type Fl<T> = ((T,T),(T,T));
     enum Fres { FF, FL, LF, LL };
-
+    // just get first and last points
     fn get_fl<T: Copy>(shape: &ShapeZ<T>) -> Fl<T>{
         let first = shape.points[0];
         let last = shape.points[shape.points.len() - 1];
         (first,last)
     }
-
+    // Return the first shape that connects to the input shape, or None
     fn find_other<T>(shape: &ShapeZ<T>, others: &mut Vec<ShapeZ<T>>) -> Option<(Fres,ShapeZ<T>)>
         where
             T: PartialEq + Copy,
@@ -190,21 +193,21 @@ pub fn optimize_lines<T>(mut old: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
         if ind == std::usize::MAX{
             None
         }else{
-            let shape = others.swap_remove(ind);
+            let shape = others.swap_remove(ind); // O(1) remove, will not preserve order, we don't care
             Some((fres,shape))
         }
     }
-
+    // return reversed vec
     fn reversed<T>(mut v: Vec<T>) -> Vec<T>{
         v.reverse();
         v
     }
-
+    // return concatened vec
     fn conc<T>(mut a: Vec<T>, b: Vec<T>) -> Vec<T>{
         a.extend(b);
         a
     }
-
+    // merge two shapes into one, knowing that they connect
     fn merge<T>(fres: Fres, shape: ShapeZ<T>, oshape: ShapeZ<T>) -> ShapeZ<T>
         where
             T: BoundingType + MinMax + Copy,
@@ -212,11 +215,11 @@ pub fn optimize_lines<T>(mut old: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
         let sp = shape.points;
         let op = oshape.points;
         let z = shape.z;
-        let np = match fres{
-            Fres::FF => conc(reversed(sp),op),
-            Fres::FL => conc(op,sp),
-            Fres::LF => conc(sp,op),
-            Fres::LL => conc(sp,reversed(op)),
+        let np = match fres{ // note that reversing a line does not change how it looks
+            Fres::FF => conc(reversed(sp),op), // reverse sp so that last sp = first op, we concat
+            Fres::FL => conc(op,sp), // begin sp = end op so just put sp after op
+            Fres::LF => conc(sp,op), // exactly other way around
+            Fres::LL => conc(sp,reversed(op)), // just the inverse of the first case
         };
         let mut nz = ShapeZ{
             points: np,
@@ -229,13 +232,13 @@ pub fn optimize_lines<T>(mut old: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
 
     let mut independents = Vec::new();
     while !old.is_empty(){
-        let shape = old.pop().unwrap();
+        let shape = old.pop().unwrap(); // we checked in the while loop if old has an item
         let other = find_other(&shape, &mut old);
-        if let Some((fres,oshape)) = other{
+        if let Some((fres,oshape)) = other{ // if we find a match, merge and put it back
             let news = merge(fres,shape,oshape);
             old.push(news);
         }else{
-            independents.push(shape);
+            independents.push(shape); // if not, put it in the new vec
         }
     }
     independents
