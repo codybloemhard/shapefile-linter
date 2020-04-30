@@ -245,7 +245,7 @@ fn do_things() -> Option<()>{
         }
     }else if mode == "kmlheight"{
         let path = get_only_path()?;
-        //kml_height(path);
+        kml_height(path);
     }else{
         println!("Unsupported mode!");
     }

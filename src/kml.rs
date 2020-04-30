@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::BufReader;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use xml::reader::{EventReader,XmlEvent};
 
 fn indent(size: usize) -> String{
@@ -27,13 +28,18 @@ fn clean_name(name: String) -> String{
     builder
 }
 
-pub fn print_xml_tag_tree(path: String){
-    let file = File::open(&path);
-    let file = if let Ok(ffile) = file{
-        ffile
-    }else{
-        panic!("Could not open xml file");
+macro_rules! open_file{
+    ($path:expr) => {
+        if let Ok(ffile) = File::open(&$path){
+            ffile
+        }else{
+            panic!("Could not open file: {}", $path);
+        };
     };
+}
+
+pub fn print_xml_tag_tree(path: String){
+    let file = open_file!(path);
     let parser = EventReader::new(file);
     let mut depth = 0;
     for e in parser{
@@ -56,12 +62,7 @@ pub fn print_xml_tag_tree(path: String){
 }
 
 pub fn print_xml_tag_count(path: String){
-    let file = File::open(&path);
-    let file = if let Ok(ffile) = file{
-        ffile
-    }else{
-        panic!("Could not open xml file!");
-    };
+    let file = open_file!(path);
     let mut map = HashMap::new();
     let parser = EventReader::new(file);
     for e in parser{
@@ -88,5 +89,27 @@ pub fn print_xml_tag_count(path: String){
     vec.sort_by_key(|x| x.1);
     for (key,count) in vec{
         println!("Tag: {}, count: {}", key, count);
+    }
+}
+
+pub fn kml_height(path: String){
+    let file = open_file!(path);
+    let parser = EventReader::new(file);
+    let mut ignores = HashSet::new();
+    for x in vec!["description"]{
+        ignores.insert(x.to_string());
+    }
+    for e in parser{
+        match e{
+            Ok(XmlEvent::StartElement { name, .. }) => {
+                let nname = clean_name(name.to_string());
+                if ignores.contains(&nname) { continue; }
+            }
+            Err(e) => {
+                println!("Error: {}", e);
+                break;
+            }
+            _ => {}
+        }
     }
 }
