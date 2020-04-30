@@ -2,10 +2,12 @@ extern crate lapp;
 extern crate shapefile;
 extern crate bin_buffer;
 extern crate dlv_list;
+extern crate xml;
 
 use bin_buffer::*;
 use std::path::Path;
 use std::time::Instant;
+use std::collections::HashMap;
 
 pub mod data;
 pub mod info;
@@ -13,6 +15,7 @@ pub mod compress;
 pub mod logger;
 pub mod chunkify;
 pub mod triangulate;
+pub mod kml;
 
 use info::*;
 use compress::*;
@@ -21,7 +24,7 @@ use data::*;
 use crate::data::{PolygonZ};
 use chunkify::*;
 use triangulate::*;
-use std::collections::HashMap;
+use kml::*;
 
 fn main(){
     do_things();
@@ -230,6 +233,19 @@ fn do_things() -> Option<()>{
         let ok = buffer_write_file(&Path::new(&outfile), &buffer);
         println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
                  timer.elapsed().as_millis());
+    }else if mode == "xmltree"{
+        for file in infiles{
+            println!("\t File: {}", file);
+            print_xml_tag_tree(file);
+        }
+    }else if mode == "xmltags"{
+        for file in infiles{
+            println!("\t File: {}", file);
+            print_xml_tag_count(file);
+        }
+    }else if mode == "kmlheight"{
+        let path = get_only_path()?;
+        //kml_height(path);
     }else{
         println!("Unsupported mode!");
     }
