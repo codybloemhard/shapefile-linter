@@ -25,7 +25,7 @@ fn clean_name(name: String) -> String{
             builder.push(c);
         }
     }
-    builder
+    builder.to_ascii_lowercase()
 }
 
 macro_rules! open_file{
@@ -95,15 +95,24 @@ pub fn print_xml_tag_count(path: String){
 pub fn kml_height(path: String){
     let file = open_file!(path);
     let parser = EventReader::new(file);
-    let mut ignores = HashSet::new();
-    for x in vec!["description"]{
-        ignores.insert(x.to_string());
-    }
+    let coord_name = String::from("coordinates");
+    let mut coor = false;
+    let mut strings = Vec::new();
     for e in parser{
         match e{
             Ok(XmlEvent::StartElement { name, .. }) => {
                 let nname = clean_name(name.to_string());
-                if ignores.contains(&nname) { continue; }
+                if nname != coord_name{ continue; }
+                coor = true;
+            }
+            Ok(XmlEvent::Characters(content)) => {
+                if !coor { continue; }
+                strings.push(content);
+            }
+            Ok(XmlEvent::EndElement{ name }) => {
+                let nname = clean_name(name.to_string());
+                if nname != coord_name { continue; }
+                coor = false;
             }
             Err(e) => {
                 println!("Error: {}", e);
@@ -112,4 +121,29 @@ pub fn kml_height(path: String){
             _ => {}
         }
     }
+    println!("{}", strings.len());
+    let mut vvp4 = Vec::new();
+    for string in strings{
+        let mut line = Vec::new();
+        let points_str: Vec<_> = string.split(' ').collect();
+        for point_str in points_str{
+            let comps: Vec<_> = point_str.split(',').collect();
+            if comps.len() != 3 { continue; }
+            let x = comps[0].parse::<f64>();
+            let y = comps[1].parse::<f64>();
+            let z = comps[2].parse::<f64>();
+            if x.is_err() || y.is_err() || z.is_err(){
+                panic!("xyz none");
+            }
+            fn cclamp<T: std::fmt::Debug>(c: Result<f64,T>) -> f64{
+                (c.unwrap() / 5.0).round() * 5.0
+            }
+            line.push((
+                    cclamp(x),
+                    cclamp(y),
+                    cclamp(z),0));
+        }
+        vvp4.push(line);
+    }
+    println!("{}", vvp4.len());
 }
