@@ -16,6 +16,7 @@ pub mod logger;
 pub mod chunkify;
 pub mod triangulate;
 pub mod kml;
+pub mod convert;
 
 use info::*;
 use compress::*;
@@ -25,6 +26,7 @@ use crate::data::{PolygonZ};
 use chunkify::*;
 use triangulate::*;
 use kml::*;
+use convert::*;
 
 fn main(){
     do_things();
@@ -36,12 +38,14 @@ fn do_things() -> Option<()>{
     Preprocess shapefiles into more efficient files.
       <inputfile> (string...) input file(s) name(s)
       --output (default outp) (string) define output file
-      --mode (default info) (string) what to do"
+      --mode (default info) (string) what to do
+      --ft (default none) (string) type of input file"
     );
 
     let infiles = args.get_strings("inputfile");
     let outfile = args.get_string("output");
     let mode = args.get_string("mode");
+    let ft = args.get_string("ft");
 
     let mut logger = Logger::default();
 
@@ -222,9 +226,19 @@ fn do_things() -> Option<()>{
         // println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
         //          timer.elapsed().as_millis());
     }else if mode == "height"{// Compress shapefile, assuming it consist of height lines.
-        let shapes = read_only_file()?;
-        let all = split(shapes, &mut logger);
-        let plinezs = all.5;
+        let path = get_only_path()?;
+        let plinezs = if &ft == "none"{
+            println!("No filetype specified!");
+            return None;
+        }else if &ft == "shape"{
+            let shapes = read_only_file()?;
+            split(shapes, &mut logger).5
+        }else if &ft == "kml"{
+            kml_height(path)
+        }else{
+            println!("Unknown filetype specified!");
+            return None;
+        };
         let shapezs = compress_heightmap(plinezs, &mut logger);
         println!("Compressed: {} ms", timer.elapsed().as_millis());
         let infos = info_package(&shapezs);
@@ -243,9 +257,6 @@ fn do_things() -> Option<()>{
             println!("\t File: {}", file);
             print_xml_tag_count(file);
         }
-    }else if mode == "kmlheight"{
-        let path = get_only_path()?;
-        kml_height(path);
     }else{
         println!("Unsupported mode!");
     }

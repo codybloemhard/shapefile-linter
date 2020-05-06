@@ -1,8 +1,8 @@
 use std::fs::File;
-use std::io::BufReader;
 use std::collections::HashMap;
-use std::collections::HashSet;
 use xml::reader::{EventReader,XmlEvent};
+use crate::data::VvP4;
+use crate::convert::degree_to_utm;
 
 fn indent(size: usize) -> String{
     const INDENT: &'static str = "  ";
@@ -92,7 +92,7 @@ pub fn print_xml_tag_count(path: String){
     }
 }
 
-pub fn kml_height(path: String){
+pub fn kml_height(path: String) -> VvP4{
     let file = open_file!(path);
     let parser = EventReader::new(file);
     let coord_name = String::from("coordinates");
@@ -135,15 +135,13 @@ pub fn kml_height(path: String){
             if x.is_err() || y.is_err() || z.is_err(){
                 panic!("xyz none");
             }
-            fn cclamp<T: std::fmt::Debug>(c: Result<f64,T>) -> f64{
+            fn hclamp<T: std::fmt::Debug>(c: Result<f64,T>) -> f64{
                 (c.unwrap() / 5.0).round() * 5.0
             }
-            line.push((
-                    cclamp(x),
-                    cclamp(y),
-                    cclamp(z),0));
+            let (_,_,x,y) = degree_to_utm((x.unwrap(),y.unwrap()));
+            line.push((x, y, hclamp(z), 0.0));
         }
         vvp4.push(line);
     }
-    println!("{}", vvp4.len());
+    vvp4
 }
