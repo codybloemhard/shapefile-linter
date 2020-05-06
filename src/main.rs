@@ -81,7 +81,27 @@ fn do_things() -> Option<()>{
                      timer.elapsed().as_millis());
         }
     }
-    if mode == "info"{// Just print info about shapefile content.
+    macro_rules! get_plinezs{
+        ($path:expr) => {
+            if &ft == "none"{
+                println!("No filetype specified!");
+                return None;
+            }else if &ft == "shape"{
+                let shapes = read_single_file($path)?;
+                split(shapes, &mut logger).5
+            }else if &ft == "kml"{
+                kml_height($path)
+            }else{
+                println!("Unknown filetype specified!");
+                return None;
+            };
+        }
+    }
+    if mode == "shapeinfo"{// Just print info about shapefile content.
+        if &ft != "shape" {
+            println!("This mode only works on shapefiles!");
+            return None;
+        }
         let shapes = read_only_file()?;
         print_shape_content(&shapes);
         let splitted = split(shapes, &mut logger);
@@ -90,8 +110,7 @@ fn do_things() -> Option<()>{
         println!("{:?}", infiles);
         let mut collection = Vec::new();
         for file in infiles{
-            let read = read_single_file(file)?;
-            let plinezs = split(read, &mut logger).5;
+            let plinezs = get_plinezs!(file);
             let mut shapezs = compress_heightmap(plinezs, &mut logger);
             collection.append(&mut shapezs);
         }
@@ -99,8 +118,7 @@ fn do_things() -> Option<()>{
     }else if mode == "lintheight"{// Print info about heightlines
         let mut wrongs = Vec::new();
         for file in infiles{
-            let read = read_single_file(file)?;
-            let plinezs = split(read, &mut logger).5;
+            let plinezs = get_plinezs!(file);
             let mut vec = collect_wrong_heightlines(plinezs, &mut logger);
             wrongs.append(&mut vec);
         }
@@ -227,18 +245,7 @@ fn do_things() -> Option<()>{
         //          timer.elapsed().as_millis());
     }else if mode == "height"{// Compress shapefile, assuming it consist of height lines.
         let path = get_only_path()?;
-        let plinezs = if &ft == "none"{
-            println!("No filetype specified!");
-            return None;
-        }else if &ft == "shape"{
-            let shapes = read_only_file()?;
-            split(shapes, &mut logger).5
-        }else if &ft == "kml"{
-            kml_height(path)
-        }else{
-            println!("Unknown filetype specified!");
-            return None;
-        };
+        let plinezs = get_plinezs!(path);
         let shapezs = compress_heightmap(plinezs, &mut logger);
         println!("Compressed: {} ms", timer.elapsed().as_millis());
         let infos = info_package(&shapezs);
