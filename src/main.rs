@@ -53,7 +53,10 @@ fn do_things() -> Option<()>{
     let timer = Instant::now();
     // Take one file
     let get_only_path = ||{
-        if infiles.is_empty() { return Option::None; }
+        if infiles.is_empty() {
+            logger.report();
+            return Option::None;
+        }
         Option::Some(infiles[0].clone())
     };
     // Take all files
@@ -68,7 +71,10 @@ fn do_things() -> Option<()>{
     };
     // Read one file, assume it's the only one, more can't hurt.
     let read_only_file = ||{
-        if infiles.is_empty() { return Option::None; }
+        if infiles.is_empty() {
+            logger.report();
+            return Option::None;
+        }
         read_single_file(infiles[0].clone())
     };
     // Compress and bufferize and write collection.
@@ -81,10 +87,13 @@ fn do_things() -> Option<()>{
                      timer.elapsed().as_millis());
         }
     }
+    // read in heightlines. depending on the choice the user made, shapefile or kml.
+    // shapefile is assumed to be in utm and kml is assumed to be in lat/lon.
     macro_rules! get_plinezs{
         ($path:expr) => {
             if &ft == "none"{
                 println!("No filetype specified!");
+                logger.report();
                 return None;
             }else if &ft == "shape"{
                 let shapes = read_single_file($path)?;
@@ -93,6 +102,7 @@ fn do_things() -> Option<()>{
                 kml_height($path)
             }else{
                 println!("Unknown filetype specified!");
+                logger.report();
                 return None;
             };
         }
@@ -100,6 +110,7 @@ fn do_things() -> Option<()>{
     if mode == "shapeinfo"{// Just print info about shapefile content.
         if &ft != "shape" {
             println!("This mode only works on shapefiles!");
+            logger.report();
             return None;
         }
         let shapes = read_only_file()?;
@@ -254,12 +265,12 @@ fn do_things() -> Option<()>{
         let ok = buffer_write_file(&Path::new(&outfile), &buffer);
         println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
                  timer.elapsed().as_millis());
-    }else if mode == "xmltree"{
+    }else if mode == "xmltree"{// print out the xml open tags in indented tree form.
         for file in infiles{
             println!("\t File: {}", file);
             print_xml_tag_tree(file);
         }
-    }else if mode == "xmltags"{
+    }else if mode == "xmltags"{// print out every xml tag with its count.
         for file in infiles{
             println!("\t File: {}", file);
             print_xml_tag_count(file);
