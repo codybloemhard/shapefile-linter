@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use crate::logger::*;
 use super::data::*;
 use shapefile::*;
-
+// ranges: (offset x, range x, offset y, range y, offset z, range z)
 pub type Ranges = (u64,u64,u64,u64,u64,u64);
-
+// calculate info needed to compress
 pub fn info_package<'a,S: CustomShape>(shapes: &'a [S]) -> (u64,u64,u64,u64,CompTarget)
     where
         for<'b> &'b S: IntoIterator,
@@ -22,7 +22,7 @@ pub fn info_package<'a,S: CustomShape>(shapes: &'a [S]) -> (u64,u64,u64,u64,Comp
     println!("target {} with multiplier {} using {} of range", target.to_string(), multi, usage);
     (mx,my,mz,multi,target)
 }
-
+// calculate the ranges and offsets from the values of the collection
 // using this magic: https://doc.rust-lang.org/nomicon/hrtb.html
 pub fn compress_doubles_stats<'a,S>(shapes: &'a [S]) -> Ranges
     where
@@ -51,7 +51,7 @@ pub fn compress_doubles_stats<'a,S>(shapes: &'a [S]) -> Ranges
     }
     (xmin, xmax - xmin, ymin, ymax - ymin, zmin, zmax - zmin)
 }
-
+// calculate the ranges and offsets of individual shapes
 pub fn compress_shapes_stats<'a,S>(shapes: &'a [S]) -> (u64,u64,u64)
     where
         S: CustomShape,
@@ -89,7 +89,7 @@ pub fn compress_shapes_stats<'a,S>(shapes: &'a [S]) -> (u64,u64,u64)
     }
     (rangex,rangey,rangez)
 }
-
+// check how many duplicate points there are
 pub fn compress_repeated_points_in_lines_stats<'a, S>(shapes: &'a [S]) -> (usize,usize)
     where
         for<'b> &'b S: IntoIterator,
@@ -111,12 +111,12 @@ pub fn compress_repeated_points_in_lines_stats<'a, S>(shapes: &'a [S]) -> (usize
     }
     (points,repeated)
 }
-
+// which data type will we use?
 #[derive(Copy,Clone)]
 pub enum CompTarget{
     U8,U16,U32,NONE,
 }
-
+// how we print out the CompTarget
 impl std::fmt::Display for CompTarget{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result{
         write!(f,"{}",match self{
@@ -127,7 +127,7 @@ impl std::fmt::Display for CompTarget{
         })
     }
 }
-
+// check the max value and choose the right primitive for that max
 pub fn target_compression_type((_,rx,_,ry,_,rz): Ranges) -> (u64, CompTarget){
     fn get_target(range: u64) -> CompTarget{
         if range < std::u8::MAX.into(){ CompTarget::U8 }
@@ -138,7 +138,7 @@ pub fn target_compression_type((_,rx,_,ry,_,rz): Ranges) -> (u64, CompTarget){
     let max = rx.max(ry).max(rz);
     (max,get_target(max))
 }
-
+// how many times does the max fit in the primitive max?
 pub fn target_multiplier(mr: u64, target: CompTarget) -> (u64,f64){
     let max: u64 = match target{
         CompTarget::U8 => std::u8::MAX.into(),
@@ -150,7 +150,7 @@ pub fn target_multiplier(mr: u64, target: CompTarget) -> (u64,f64){
     if m < 1 { panic!("Error: target_multiplier smaller than one!"); }
     (m,(m * mr) as f64 / max as f64)
 }
-
+// print out the distribution of height
 pub fn print_height_distribution<T>(shapes: &[ShapeZ<T>])
     where
         T: std::hash::Hash + std::cmp::Eq + std::fmt::Display + std::cmp::Ord
@@ -175,7 +175,7 @@ pub fn print_height_distribution<T>(shapes: &[ShapeZ<T>])
     }
     println!();
 }
-
+// returns all heightlines that have more than one height
 pub fn collect_wrong_heightlines(shapes: VvP4, logger: &mut Logger)
     -> Vvec<f64>
 {
@@ -202,7 +202,7 @@ pub fn collect_wrong_heightlines(shapes: VvP4, logger: &mut Logger)
     }
     wrong
 }
-
+// print out how much of every shape type there is
 pub fn print_split_content((ps,pms,pzs,pls,plms,plzs,mps,mpms,mpzs,pgs,pgms,pgzs): &Splitted){
     println!("How much of everything is present in this shapefile: ");
     println!("Point's: {}", ps.len());
@@ -218,7 +218,7 @@ pub fn print_split_content((ps,pms,pzs,pls,plms,plzs,mps,mpms,mpzs,pgs,pgms,pgzs
     println!("PolygonM's: {}", pgms.len());
     println!("PolygonZ's: {}", pgzs.len());
 }
-
+// print out counts of shapetypes and inner parts
 pub fn print_shape_content(shapes: &[Shape]){
     let mut p = 0; let mut pm = 0; let mut pz = 0;
     let mut pl = 0; let mut plp = 0; let mut ps = 0;

@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use xml::reader::{EventReader,XmlEvent};
 use crate::data::VvP4;
 use crate::convert::degree_to_utm;
-
+// right amount of spaces for x indentations
 fn indent(size: usize) -> String{
     const INDENT: &'static str = "  ";
     (0..size).map(|_| INDENT).fold(String::with_capacity(size*INDENT.len()), |r,s| r + s)
 }
-
+// clean out everything between {} inclusive, and to lowercase
 fn clean_name(name: String) -> String{
     let mut builder = String::new();
     let mut erase = false;
@@ -27,7 +27,7 @@ fn clean_name(name: String) -> String{
     }
     builder.to_ascii_lowercase()
 }
-
+// open file or die
 macro_rules! open_file{
     ($path:expr) => {
         if let Ok(ffile) = File::open(&$path){
@@ -37,7 +37,7 @@ macro_rules! open_file{
         };
     };
 }
-
+// print a indented tree of opening xml tags
 pub fn print_xml_tag_tree(path: String){
     let file = open_file!(path);
     let parser = EventReader::new(file);
@@ -60,7 +60,7 @@ pub fn print_xml_tag_tree(path: String){
     }
     println!("hoi");
 }
-
+// count all tags and print them out with counts
 pub fn print_xml_tag_count(path: String){
     let file = open_file!(path);
     let mut map = HashMap::new();
@@ -91,7 +91,7 @@ pub fn print_xml_tag_count(path: String){
         println!("Tag: {}, count: {}", key, count);
     }
 }
-
+// parse heightlines from kml file
 pub fn kml_height(path: String) -> VvP4{
     let file = open_file!(path);
     let parser = EventReader::new(file);
