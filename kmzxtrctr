@@ -2,6 +2,7 @@
 mkdir $2
 array=($(ls $1/*.kmz))
 $var = 0
+((var++))
 for f in ${array[*]}
 do
     unzip $f
