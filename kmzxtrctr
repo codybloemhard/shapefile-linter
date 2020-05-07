@@ -1,0 +1,11 @@
+#!/bin/bash
+mkdir $2
+array=($(ls $1/*.kmz))
+$var = 0
+for f in ${array[*]}
+do
+    unzip $f
+    rm *.xsl
+    mv doc.kml $2/$var.kml
+    ((var++))
+done
