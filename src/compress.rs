@@ -2,6 +2,7 @@ use bin_buffer::*;
 use crate::data::{PolygonZ,Vvec,StretchableBB,get_global_bb,UpdateableBB,ShapeZ,P3,VvP4};
 use crate::info::CompTarget;
 use crate::logger::*;
+use crate::triangulate::triangulate;
 // To get a value from u64, std converts are safe
 // I know when i can cast(from offset, multi, etc)
 // Just want to do it without checking
@@ -34,12 +35,16 @@ pub trait Compressable
 {
     fn compress(self, infos: (u64,u64,u64,u64,CompTarget)) -> Buffer;
 }
+// Ability to be transformed into triangles and than compressed into buffer
+pub trait TriangleCompressable{
+    fn triangle_compress(self, infos: (u64,u64,u64,u64,CompTarget)) -> Buffer;
+}
 // Macro that builds a generic implementation of Compressable
 macro_rules! ImplCompressable {
-    ($btype:ty,$fname:ident) => {
-        impl Compressable for $btype
+    ($tname:ident,$tfname:ident,$btype:ty,$fname:ident,$trans:ident) => {
+        impl $tname for $btype
         {
-            fn compress
+            fn $tfname
                 (mut self, (mx,my,mz,multi,target): (u64,u64,u64,u64,CompTarget)) -> Buffer{
                     let mut buffer = Vec::new();
                     (mx,my,mz,multi).into_buffer(&mut buffer);
@@ -50,6 +55,8 @@ macro_rules! ImplCompressable {
                             ns.iter_mut().for_each(|x| x.update_bb());
                             let bb = get_global_bb(&ns);
                             println!("Global Boundingbox: {:?}", bb);
+                            // triangulate?
+                            let ns = $trans(ns);
                             bb.into_buffer(&mut buffer);
                             ns.into_buffer(&mut buffer);
                         };
@@ -70,9 +77,11 @@ macro_rules! ImplCompressable {
         }
     };
 }
+fn id<T>(v: T) -> T { v }
 // Actually implement it for the needed types
-ImplCompressable!(Vec<ShapeZ<f64>>,compress_shapez_into);
-ImplCompressable!(Vec<PolygonZ<f64>>,compress_polygonz_into);
+ImplCompressable!(Compressable,compress,Vec<ShapeZ<f64>>,compress_shapez_into,id);
+ImplCompressable!(Compressable,compress,Vec<PolygonZ<f64>>,compress_polygonz_into,id);
+ImplCompressable!(TriangleCompressable,triangle_compress,Vec<PolygonZ<f64>>,compress_polygonz_into,triangulate);
 // Take ShapeZ of f64 and turn into ShapeZ of given T
 // Used to implement Compressable
 pub fn compress_shapez_into<T: Bufferable + FromU64>

@@ -242,17 +242,25 @@ fn do_things() -> Option<()>{
         mods.into_buffer(&mut info_buffer);
         let ok = buffer_write_file(&Path::new("chunks.info"), &info_buffer);
         println!("Writing file \"chunks.info\" ok?: {}", ok);
-    }else if mode == "polygonz"{// Take shapefile and compress the polygonZ's into triangles.
+    }else if mode == "polygonz"{// Take shapefile and compress the polygonZ's
         let shapes = read_only_file()?;
         let polys = split(shapes, &mut logger).11;
         let polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(PolygonZ::from).collect();
-        let triangles = triangulate(polyzs);
-        // let infos = info_package(&polyzs);
-        // let buffer = polyzs.compress(infos);
-        // println!("Bufferized: {} ms", timer.elapsed().as_millis());
-        // let ok = buffer_write_file(&Path::new(&outfile), &buffer);
-        // println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
-        //          timer.elapsed().as_millis());
+        let infos = info_package(&polyzs);
+        let buffer = polyzs.compress(infos);
+        println!("Bufferized: {} ms", timer.elapsed().as_millis());
+        let ok = buffer_write_file(&Path::new(&outfile), &buffer);
+        println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
+                 timer.elapsed().as_millis());
+    }else if mode == "triangulate"{ // take polygonz's and triangulate and compress them
+        let shapes = read_only_file()?;
+        let polys = split(shapes, &mut logger).11;
+        let polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(PolygonZ::from).collect();
+        let infos = info_package(&polyzs);
+        let buffer = polyzs.triangle_compress(infos);
+        let ok = buffer_write_file(&Path::new(&outfile), &buffer);
+        println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
+                 timer.elapsed().as_millis());
     }else if mode == "height"{// Compress shapefile, assuming it consist of height lines.
         let path = get_only_path()?;
         let plinezs = get_plinezs!(path);

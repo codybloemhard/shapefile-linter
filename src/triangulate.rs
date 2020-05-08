@@ -3,12 +3,32 @@ use dlv_list::*;
 use crate::data::*;
 use std::cmp::Ordering;
 use std::ops::{Add,Sub,Div,Mul};
-
+use bin_buffer::*;
+#[derive(Clone)]
 pub struct PolyTriangle<T>{
     vertices: Vec<(T,T)>,
     indices: Vec<usize>,
 }
 
+impl<T: Bufferable + Clone> Bufferable for PolyTriangle<T>{
+    fn into_buffer(self, buf: &mut Buffer){
+        self.vertices.into_buffer(buf);
+        self.indices.into_buffer(buf);
+    }
+
+    fn copy_into_buffer(&self, buf: &mut Buffer){
+        self.clone().into_buffer(buf);
+    }
+
+    fn from_buffer(buf: &mut ReadBuffer) -> Option<Self>{
+        let vertices = Vec::<(T,T)>::from_buffer(buf)?;
+        let indices = Vec::<usize>::from_buffer(buf)?;
+        Some(Self{
+            vertices,
+            indices,
+        })
+    }
+}
 #[derive(Clone,PartialEq)]
 struct PolyPoint<T>{
     point: P3<T>,
@@ -75,7 +95,7 @@ pub fn test(){
 pub fn triangulate<T>(polyzs: Vec<PolygonZ<T>>) -> Vec<PolyTriangle<T>>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + Default + MinMax,
-    f64: Into<T>
+    u8: Into<T>
 {
     let mut res = Vec::new();
     for polygon in polyzs{
@@ -103,7 +123,7 @@ where
 fn group_polygons<T>(polygon: PolygonZ<T>) -> Vec<(Vec<P3<T>>, Vvec<P3<T>>)>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
-    f64: Into<T>
+    u8: Into<T>
 {
     //polygon polygon.outers[i] is inside inside[i] other polygons
     let mut inside = Vec::new();
@@ -146,7 +166,7 @@ where
 fn merge_inner<T>(outer: &mut Vec<P3<T>>, mut inners: Vvec<P3<T>>) -> Vec<P3<T>>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + Default + MinMax,
-    f64: Into<T>
+    u8: Into<T>
 {
     //merge inner ring with highest x coordinate first (this one can defneitely to see the outer ring)
     inners.sort_by(|a, b| rightmost(a).partial_cmp(&rightmost(b)).unwrap_or(Ordering::Equal));
@@ -177,8 +197,8 @@ where
             let x2 = outer[(i + 1) % outer.len()].0;
             let y2 = outer[(i + 1) % outer.len()].1;
 
-            let zero = 0.0.into();
-            let one = 1.0.into();
+            let zero = 0.into();
+            let one = 1.into();
 
             let t = (y3 - y1) / (y2 - y1);
             if t < zero || t > one {continue}
@@ -222,7 +242,7 @@ where
 fn rightmost<T>(inner: &[P3<T>]) -> T
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + MinMax,
-    f64: Into<T>
+    u8: Into<T>
 {
     let mut rightmost = T::minv();
     for (x,_,_) in inner{
@@ -236,7 +256,7 @@ where
 fn make_indices<T>(vertices: &[P3<T>]) -> Vec<usize>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
-    f64: Into<T>
+    u8: Into<T>
 {
     if vertices.len() < 3 {panic!("polygon can't have fewer than 3 sides")}
 
@@ -348,7 +368,7 @@ fn prev_index_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> Index<T>{
 fn update<T>(polygon: &mut VecList<PolyPoint<T>>, i: Index<PolyPoint<T>>)
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
-    f64: Into<T>
+    u8: Into<T>
 {
     let mut ear = false;
     let mut reflex = false;
@@ -374,7 +394,7 @@ where
 fn is_reflex<T>(polygon: &VecList<PolyPoint<T>>, i: Index<PolyPoint<T>>) -> bool
 where
     T: Mul<Output = T> + Sub<Output = T> + PartialOrd + Copy,
-    f64: Into<T>
+    u8: Into<T>
 {
     let ax = prev_cyclic(polygon,i).point.0;
     let ay = prev_cyclic(polygon,i).point.1;
@@ -383,13 +403,13 @@ where
     let cx = next_cyclic(polygon,i).point.0;
     let cy = next_cyclic(polygon,i).point.1;
 
-    (bx - ax) * (cy - by) - (cx - bx) * (by - ay) > 0.0.into()
+    (bx - ax) * (cy - by) - (cx - bx) * (by - ay) > 0.into()
 }
 
 fn is_ear<T>(polygon: &VecList<PolyPoint<T>>, i: Index<PolyPoint<T>>) -> bool
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
-    f64: Into<T>
+    u8: Into<T>
 {
     //an ear is a point of a triangle with no other points inside
     let p = polygon.get(i).unwrap();
@@ -408,7 +428,7 @@ where
 fn is_inside_triangle<T>(p:P3<T>,p0:P3<T>,p1:P3<T>,p2:P3<T>) -> bool
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
-    f64: Into<T>
+    u8: Into<T>
 {
     let x0 = p.0;
     let y0 = p.1;
@@ -423,8 +443,8 @@ where
         return false
     }
 
-    let zero = 0.0.into();
-    let one = 1.0.into();
+    let zero = 0.into();
+    let one = 1.into();
 
     let denominator = (y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3);
     let aa = ((y2 - y3)*(x0 - x3) + (x3 - x2)*(y0 - y3)) / denominator;
@@ -441,7 +461,7 @@ where
 fn is_inside_polygon<T>(polygon: Vec<P3<T>>, p: P3<T>)-> bool
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
-    f64: Into<T>
+    u8: Into<T>
 {
     //shoot a ray to the right and count how many times it intersects the polygon
     //even means outside, odd means inside
@@ -452,8 +472,8 @@ where
         let x2 = polygon[(i + 1) % polygon.len()].0;
         let y2 = polygon[(i + 1) % polygon.len()].1;
 
-        let zero = 0.0.into();
-        let one = 1.0.into();
+        let zero = 0.into();
+        let one = 1.into();
 
         let t = (p.1 - y1) / (y2 - y1);
         if t < zero || t > one {continue}

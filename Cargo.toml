@@ -9,6 +9,6 @@ edition = "2018"
 [dependencies]
 lapp = "0.4.0"
 shapefile = "0.2.0"
-bin_buffer = "0.1.9"
+bin_buffer = "0.1.11"
 dlv-list = "0.2.2"
 xml-rs = "0.8"
