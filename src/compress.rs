@@ -13,6 +13,18 @@ pub trait FromU64{
 impl FromU64 for u8{ fn from(x: u64) -> Self{ x as u8 } }
 impl FromU64 for u16{ fn from(x: u64) -> Self{ x as u16 } }
 impl FromU64 for u32{ fn from(x: u64) -> Self{ x as u32 } }
+
+pub trait FromF64{
+    fn from(x: f64) -> Self;
+}
+
+impl FromF64 for u8{ fn from(x: f64) -> Self{ x as u8 } }
+impl FromF64 for u16{ fn from(x: f64) -> Self{ x as u16 } }
+impl FromF64 for u32{ fn from(x: f64) -> Self{ x as u32 } }
+impl FromF64 for f32{ fn from(x: f64) -> Self{ x as f32 } }
+impl FromF64 for f64{ fn from(x: f64) -> Self{ x as f64 } }
+
+
 // Peform compression by using a range offset and multiplier
 pub trait OffScaleFromU64{
     fn offscale(x: f64, o: u64, m: u64) -> Self;
