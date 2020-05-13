@@ -4,6 +4,8 @@ use crate::data::*;
 use std::cmp::Ordering;
 use std::ops::{Add,Sub,Div,Mul};
 use bin_buffer::*;
+use crate::compress::*;
+
 #[derive(Clone)]
 pub struct PolyTriangle<T>{
     vertices: Vec<(T,T)>,
@@ -95,7 +97,8 @@ pub fn test(){
 pub fn triangulate<T>(polyzs: Vec<PolygonZ<T>>) -> Vec<PolyTriangle<T>>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + Default + MinMax,
-    u8: Into<T>
+    u8: Into<T>,
+    T: Into<f64> + FromF64
 {
     let mut res = Vec::new();
     for polygon in polyzs{
@@ -123,7 +126,8 @@ where
 fn group_polygons<T>(polygon: PolygonZ<T>) -> Vec<(Vec<P3<T>>, Vvec<P3<T>>)>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
-    u8: Into<T>
+    u8: Into<T>,
+    T: Into<f64>
 {
     //polygon polygon.outers[i] is inside inside[i] other polygons
     let mut inside = Vec::new();
@@ -166,7 +170,7 @@ where
 fn merge_inner<T>(outer: &mut Vec<P3<T>>, mut inners: Vvec<P3<T>>) -> Vec<P3<T>>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + Default + MinMax,
-    u8: Into<T>
+    T: Into<f64> + FromF64
 {
     //merge inner ring with highest x coordinate first (this one can defneitely to see the outer ring)
     inners.sort_by(|a, b| rightmost(a).partial_cmp(&rightmost(b)).unwrap_or(Ordering::Equal));
@@ -187,32 +191,30 @@ where
         //calculate closest intersection with outer ring when going to the right
         let mut intersect = (T::default(),T::default(),T::default());
         let mut intersect_index = 0;
-        let mut best_dis = T::maxv();
+        let mut best_dis: T = T::maxv();
 
-        let x3 = rightmost.0;
-        let y3 = rightmost.1;
+        let x3: f64 = rightmost.0.into();
+        let y3: f64 = rightmost.1.into();
         for i in 0..outer.len(){
-            let x1 = outer[i].0;
-            let y1 = outer[i].1;
-            let x2 = outer[(i + 1) % outer.len()].0;
-            let y2 = outer[(i + 1) % outer.len()].1;
+            let x1: f64 = outer[i].0.into();
+            let y1: f64 = outer[i].1.into();
+            let x2: f64 = outer[(i + 1) % outer.len()].0.into();
+            let y2: f64 = outer[(i + 1) % outer.len()].1.into();
 
-            let zero = 0.into();
-            let one = 1.into();
+            if y2-y1 == 0.0 {continue}
+            let t: f64 = (y3 - y1) / (y2 - y1);
+            if t < 0.0 || t > 1.0 {continue}
 
-            let t = (y3 - y1) / (y2 - y1);
-            if t < zero || t > one {continue}
+            let x: f64 = x1 + t * (x2 - x1);
+            let cur_dis: f64 = x - x3;
+            if cur_dis<0.0 || T::from(cur_dis) >= best_dis {continue}
 
-            let x = x1 + t * (x2 - x1);
-            let cur_dis = x - x3;
-            if cur_dis<zero || cur_dis >= best_dis {continue}
-
-            best_dis = cur_dis;
-            let z1 = outer[i].2;
-            let z2 = outer[(i + 1) % outer.len()].2;
-            let z = z1 + t * (z2 - z1);
+            best_dis = T::from(cur_dis);
+            let z1: f64 = outer[i].2.into();
+            let z2: f64 = outer[(i + 1) % outer.len()].2.into();
+            let z: T = T::from(z1 + t * (z2 - z1));
             intersect_index = (i + 1) % outer.len();
-            intersect = (x,y3,z);
+            intersect = (T::from(x),T::from(y3),z);
         }
 
         let mut new_vertices= Vec::new();
@@ -241,8 +243,7 @@ where
 
 fn rightmost<T>(inner: &[P3<T>]) -> T
 where
-    T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + MinMax,
-    u8: Into<T>
+    T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + MinMax
 {
     let mut rightmost = T::minv();
     for (x,_,_) in inner{
@@ -256,7 +257,7 @@ where
 fn make_indices<T>(vertices: &[P3<T>]) -> Vec<usize>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
-    u8: Into<T>
+    T: Into<f64>
 {
     if vertices.len() < 3 {panic!("polygon can't have fewer than 3 sides")}
 
@@ -368,7 +369,7 @@ fn prev_index_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> Index<T>{
 fn update<T>(polygon: &mut VecList<PolyPoint<T>>, i: Index<PolyPoint<T>>)
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
-    u8: Into<T>
+    T: Into<f64>
 {
     let mut ear = false;
     let mut reflex = false;
@@ -394,22 +395,22 @@ where
 fn is_reflex<T>(polygon: &VecList<PolyPoint<T>>, i: Index<PolyPoint<T>>) -> bool
 where
     T: Mul<Output = T> + Sub<Output = T> + PartialOrd + Copy,
-    u8: Into<T>
+    T: Into<f64>
 {
-    let ax = prev_cyclic(polygon,i).point.0;
-    let ay = prev_cyclic(polygon,i).point.1;
-    let bx = polygon.get(i).unwrap().point.0;
-    let by = polygon.get(i).unwrap().point.1;
-    let cx = next_cyclic(polygon,i).point.0;
-    let cy = next_cyclic(polygon,i).point.1;
+    let ax = prev_cyclic(polygon,i).point.0.into();
+    let ay = prev_cyclic(polygon,i).point.1.into();
+    let bx = polygon.get(i).unwrap().point.0.into();
+    let by = polygon.get(i).unwrap().point.1.into();
+    let cx = next_cyclic(polygon,i).point.0.into();
+    let cy = next_cyclic(polygon,i).point.1.into();
 
-    (bx - ax) * (cy - by) - (cx - bx) * (by - ay) > 0.into()
+    (bx - ax) * (cy - by) - (cx - bx) * (by - ay) > 0.0
 }
 
 fn is_ear<T>(polygon: &VecList<PolyPoint<T>>, i: Index<PolyPoint<T>>) -> bool
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
-    u8: Into<T>
+    T: Into<f64>
 {
     //an ear is a point of a triangle with no other points inside
     let p = polygon.get(i).unwrap();
@@ -428,57 +429,53 @@ where
 fn is_inside_triangle<T>(p:P3<T>,p0:P3<T>,p1:P3<T>,p2:P3<T>) -> bool
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
-    u8: Into<T>
+    T: Into<f64>
 {
-    let x0 = p.0;
-    let y0 = p.1;
-    let x1 = p0.0;
-    let y1 = p0.1;
-    let x2 = p1.0;
-    let y2 = p1.1;
-    let x3 = p2.0;
-    let y3 = p2.1;
+    let x0 = p.0.into();
+    let y0 = p.1.into();
+    let x1 = p0.0.into();
+    let y1 = p0.1.into();
+    let x2 = p1.0.into();
+    let y2 = p1.1.into();
+    let x3 = p2.0.into();
+    let y3 = p2.1.into();
 
     if  p==p0 || p==p1 || p==p2{
         return false
     }
-
-    let zero = 0.into();
-    let one = 1.into();
-
     let denominator = (y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3);
     let aa = ((y2 - y3)*(x0 - x3) + (x3 - x2)*(y0 - y3)) / denominator;
     let bb = ((y3 - y1)*(x0 - x3) + (x1 - x3)*(y0 - y3)) / denominator;
-    let cc = one - aa - bb;
+    let cc = 1.0 - aa - bb;
 
 
     //epsilon is needed because of how inner and outer polygons are merged because
     //there will be two exactly equal lines in the polygon, only in reversed order
-    aa >= zero && aa <= one && bb >= zero && bb <= one && cc >= zero && cc <= one
+    aa >= 0.0 && aa <= 1.0 && bb >= 0.0 && bb <= 1.0 && cc >= 0.0 && cc <= 1.0
 }
 
 
 fn is_inside_polygon<T>(polygon: Vec<P3<T>>, p: P3<T>)-> bool
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
-    u8: Into<T>
+    T: Into<f64>
 {
     //shoot a ray to the right and count how many times it intersects the polygon
     //even means outside, odd means inside
     let mut intersects = 0;
     for i in 0..polygon.len(){
-        let x1 = polygon[i].0;
-        let y1 = polygon[i].1;
-        let x2 = polygon[(i + 1) % polygon.len()].0;
-        let y2 = polygon[(i + 1) % polygon.len()].1;
+        let x1 = polygon[i].0.into();
+        let y1 = polygon[i].1.into();
+        let x2 = polygon[(i + 1) % polygon.len()].0.into();
+        let y2 = polygon[(i + 1) % polygon.len()].1.into();
+        let p0 = p.0.into();
+        let p1 = p.1.into();
 
-        let zero = 0.into();
-        let one = 1.into();
-
-        let t = (p.1 - y1) / (y2 - y1);
-        if t < zero || t > one {continue}
+        if y2-y1 == 0.0 {continue}
+        let t = (p1 - y1) / (y2 - y1);
+        if t < 0.0 || t > 1.0 {continue}
         let x = x1 + t * (x2 - x1);
-        if x<p.0 {continue}
+        if x<p0 {continue}
 
         //there was an intersection
         intersects+=1;
