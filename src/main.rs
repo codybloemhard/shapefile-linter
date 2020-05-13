@@ -282,6 +282,10 @@ fn do_things() -> Option<()>{
             println!("\t File: {}", file);
             print_xml_tag_count(file);
         }
+    }else if mode == "geo"{
+        for file in infiles{
+            kml_geo(file);
+        }
     }else{
         println!("Unsupported mode!");
     }

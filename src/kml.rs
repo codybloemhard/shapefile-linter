@@ -58,7 +58,6 @@ pub fn print_xml_tag_tree(path: String){
             _ => {}
         }
     }
-    println!("hoi");
 }
 // count all tags and print them out with counts
 pub fn print_xml_tag_count(path: String){
@@ -144,4 +143,52 @@ pub fn kml_height(path: String) -> VvP4{
         vvp4.push(line);
     }
     vvp4
+}
+//parse geological kml file
+pub fn kml_geo(path: String){
+    let file = open_file!(path);
+    let parser = EventReader::new(file);
+    let mut in_poly_style = false;
+    let mut style_id = String::new();
+    let mut in_colour = false;
+    let mut colour = String::new();
+    let mut styles_raw = Vec::new();
+    for e in parser{
+        match e{
+            Ok(XmlEvent::StartElement { name, attributes, .. }) => {
+                let nname = clean_name(name.to_string());
+                if &nname == "style"{
+                    if attributes.len() != 1{
+                        panic!("style tag should have only one attribute: id");
+                    }
+                    style_id = attributes[0].value.clone();
+                }else if &nname == "polystyle"{
+                    in_poly_style = true;
+                }else if &nname == "color" && in_poly_style{// fool, orang is coloure!
+                    in_colour = true;
+                }
+            }
+            Ok(XmlEvent::Characters(content)) => {
+                if in_colour{
+                    colour = content;
+                }
+            }
+            Ok(XmlEvent::EndElement{ name }) => {
+                let nname = clean_name(name.to_string());
+                if &nname == "polystyle" {
+                    in_poly_style = false;
+                    styles_raw.push((style_id,colour));
+                    style_id = String::new(); // befriend the borrowchecker
+                    colour = String::new(); // by giving him crap to eat
+                }
+                else if &nname == "color" { in_colour = false; }
+            }
+            Err(e) => {
+                println!("Error: {}", e);
+                break;
+            }
+            _ => {}
+        }
+    }
+    println!("{:?}", styles_raw);
 }
