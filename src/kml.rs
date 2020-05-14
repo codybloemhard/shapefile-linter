@@ -151,7 +151,9 @@ pub fn kml_geo(path: String){
     let mut in_poly_style = false;
     let mut style_id = String::new();
     let mut in_colour = false;
+    let mut in_outline = false;
     let mut colour = String::new();
+    let mut outline = '0';
     let mut styles_raw = Vec::new();
     for e in parser{
         match e{
@@ -166,22 +168,28 @@ pub fn kml_geo(path: String){
                     in_poly_style = true;
                 }else if &nname == "color" && in_poly_style{// fool, orang is coloure!
                     in_colour = true;
+                }else if &nname == "outline" && in_poly_style{
+                    in_outline = true;
                 }
             }
             Ok(XmlEvent::Characters(content)) => {
                 if in_colour{
                     colour = content;
+                }else if in_outline{
+                    if content.is_empty() { panic!("Outline tag content can not be empty!"); }
+                    outline = content.chars().next().unwrap();
                 }
             }
             Ok(XmlEvent::EndElement{ name }) => {
                 let nname = clean_name(name.to_string());
                 if &nname == "polystyle" {
                     in_poly_style = false;
-                    styles_raw.push((style_id,colour));
+                    styles_raw.push((style_id,colour,outline));
                     style_id = String::new(); // befriend the borrowchecker
                     colour = String::new(); // by giving him crap to eat
                 }
                 else if &nname == "color" { in_colour = false; }
+                else if &nname == "outline" { in_outline = false; }
             }
             Err(e) => {
                 println!("Error: {}", e);
