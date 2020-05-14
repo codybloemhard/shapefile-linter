@@ -155,6 +155,14 @@ pub fn kml_geo(path: String){
     let mut colour = String::new();
     let mut outline = '0';
     let mut styles_raw = Vec::new();
+    let mut in_style_url = false;
+    let mut style_url = String::new();
+    let mut in_outer = false;
+    let mut in_inner = false;
+    let mut in_coordinates = false;
+    let mut outers = Vec::new();
+    let mut inners = Vec::new();
+    let mut polygons = Vec::new();
     for e in parser{
         match e{
             Ok(XmlEvent::StartElement { name, attributes, .. }) => {
@@ -170,6 +178,14 @@ pub fn kml_geo(path: String){
                     in_colour = true;
                 }else if &nname == "outline" && in_poly_style{
                     in_outline = true;
+                }else if &nname == "styleurl"{
+                    in_style_url = true;
+                }else if &nname == "outerboundaryis"{
+                    in_outer = true;
+                }else if &nname == "innerboundaryis"{
+                    in_inner = true;
+                }else if &nname == "coordinates"{
+                    in_coordinates = true;
                 }
             }
             Ok(XmlEvent::Characters(content)) => {
@@ -178,6 +194,12 @@ pub fn kml_geo(path: String){
                 }else if in_outline{
                     if content.is_empty() { panic!("Outline tag content can not be empty!"); }
                     outline = content.chars().next().unwrap();
+                }else if in_style_url{
+                    style_url = content;
+                }else if in_coordinates && in_outer{
+                    outers.push(content);
+                }else if in_coordinates && in_inner{
+                    inners.push(content);
                 }
             }
             Ok(XmlEvent::EndElement{ name }) => {
@@ -190,6 +212,16 @@ pub fn kml_geo(path: String){
                 }
                 else if &nname == "color" { in_colour = false; }
                 else if &nname == "outline" { in_outline = false; }
+                else if &nname == "styleurl" { in_style_url = false; }
+                else if &nname == "outerboundaryis" { in_outer = false; }
+                else if &nname == "innerboundaryis" { in_inner = false; }
+                else if &nname == "coordinates" { in_coordinates = false; }
+                else if &nname == "polygon" {
+                    polygons.push((style_url,outers,inners));
+                    style_url = String::new();
+                    outers = Vec::new();
+                    inners = Vec::new();
+                }
             }
             Err(e) => {
                 println!("Error: {}", e);
@@ -199,4 +231,5 @@ pub fn kml_geo(path: String){
         }
     }
     println!("{:?}", styles_raw);
+    println!("{:?}", polygons);
 }
