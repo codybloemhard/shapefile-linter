@@ -285,7 +285,11 @@ fn do_things() -> Option<()>{
         }
     }else if mode == "geo"{
         for file in infiles{
-            kml_geo(file, HashSet::new(), HashMap::new(), Vec::new(), 0);
+            let mut set = HashSet::new();
+            let mut map = HashMap::new();
+            let mut styles = Vec::new();
+            let mut counter = 0;
+            kml_geo(file, &mut set, &mut map, &mut styles, &mut counter);
         }
     }else{
         println!("Unsupported mode!");

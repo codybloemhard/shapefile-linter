@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::collections::{HashMap,HashSet};
 use xml::reader::{EventReader,XmlEvent};
-use crate::data::VvP4;
+use crate::data::{VvP4,P4};
 use crate::convert::degree_to_utm;
 use hex::FromHex;
 // right amount of spaces for x indentations
@@ -91,6 +91,27 @@ pub fn print_xml_tag_count(path: String){
         println!("Tag: {}, count: {}", key, count);
     }
 }
+// parse string of coordinates
+pub fn parse_coords(string: String) -> Vec<P4<f64>>{
+    let mut line = Vec::new();
+    let points_str: Vec<_> = string.split(' ').collect();
+    for point_str in points_str{
+        let comps: Vec<_> = point_str.split(',').collect();
+        if comps.len() != 3 { continue; }
+        let x = comps[0].parse::<f64>();
+        let y = comps[1].parse::<f64>();
+        let z = comps[2].parse::<f64>();
+        if x.is_err() || y.is_err() || z.is_err(){
+            panic!("xyz none");
+        }
+        fn hclamp<T: std::fmt::Debug>(c: Result<f64,T>) -> f64{
+            (c.unwrap() / 5.0).round() * 5.0
+        }
+        let (_,_,x,y) = degree_to_utm((x.unwrap(),y.unwrap()));
+        line.push((x, y, hclamp(z), 0.0));
+    }
+    line
+}
 // parse heightlines from kml file
 pub fn kml_height(path: String) -> VvP4{
     let file = open_file!(path);
@@ -124,30 +145,13 @@ pub fn kml_height(path: String) -> VvP4{
     println!("{}", strings.len());
     let mut vvp4 = Vec::new();
     for string in strings{
-        let mut line = Vec::new();
-        let points_str: Vec<_> = string.split(' ').collect();
-        for point_str in points_str{
-            let comps: Vec<_> = point_str.split(',').collect();
-            if comps.len() != 3 { continue; }
-            let x = comps[0].parse::<f64>();
-            let y = comps[1].parse::<f64>();
-            let z = comps[2].parse::<f64>();
-            if x.is_err() || y.is_err() || z.is_err(){
-                panic!("xyz none");
-            }
-            fn hclamp<T: std::fmt::Debug>(c: Result<f64,T>) -> f64{
-                (c.unwrap() / 5.0).round() * 5.0
-            }
-            let (_,_,x,y) = degree_to_utm((x.unwrap(),y.unwrap()));
-            line.push((x, y, hclamp(z), 0.0));
-        }
-        vvp4.push(line);
+        vvp4.push(parse_coords(string));
     }
     vvp4
 }
 //parse geological kml file
-pub fn kml_geo(path: String, mut colset: HashSet<String>, mut colmap: HashMap<String,usize>,
-    mut styles: Vec<(usize,u8,u8,u8,u8)>, mut counter: usize){
+pub fn kml_geo(path: String, colset: &mut HashSet<String>, colmap: &mut HashMap<String,usize>,
+    styles: &mut Vec<(usize,u8,u8,u8,u8)>, counter: &mut usize) -> Vec<(usize,VvP4,VvP4)>{
     let file = open_file!(path);
     let parser = EventReader::new(file);
     let mut in_poly_style = false;
@@ -234,7 +238,7 @@ pub fn kml_geo(path: String, mut colset: HashSet<String>, mut colmap: HashMap<St
     }
     for (id,colourstr,outline) in styles_raw{
         if colset.contains(&colourstr) { continue; }
-        colmap.insert(id.clone(), counter);
+        colmap.insert(id.clone(), *counter);
         colset.insert(colourstr.clone());
         let outl = if outline == '1' { 1u8 }
         else { 0u8 };
@@ -247,12 +251,22 @@ pub fn kml_geo(path: String, mut colset: HashSet<String>, mut colmap: HashMap<St
         let r = components[offset];
         let g = components[offset + 1];
         let b = components[offset + 2];
-        styles.push((counter,outl,r,g,b));
-        counter += 1;
+        styles.push((*counter,outl,r,g,b));
+        *counter += 1;
     }
+    let mut polys = Vec::new();
     for (sturl,outersraw,innersraw) in polygons{
         let id = if let Some(idd) = colmap.get(&sturl)
-        { idd } else { panic!("Could not find colour id!"); };
-        let outers = Vec::new();
+        { *idd } else { panic!("Could not find colour id!"); };
+        let mut outers = Vec::new();
+        for outerraw in outersraw{
+            outers.push(parse_coords(outerraw));
+        }
+        let mut inners = Vec::new();
+        for innerraw in innersraw{
+            inners.push(parse_coords(innerraw));
+        }
+        polys.push((id,outers,inners));
     }
+    polys
 }
