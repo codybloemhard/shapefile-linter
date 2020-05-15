@@ -3,11 +3,12 @@ extern crate shapefile;
 extern crate bin_buffer;
 extern crate dlv_list;
 extern crate xml;
+extern crate hex;
 
 use bin_buffer::*;
 use std::path::Path;
 use std::time::Instant;
-use std::collections::HashMap;
+use std::collections::{HashMap,HashSet};
 
 pub mod data;
 pub mod info;
@@ -284,7 +285,7 @@ fn do_things() -> Option<()>{
         }
     }else if mode == "geo"{
         for file in infiles{
-            kml_geo(file);
+            kml_geo(file, HashSet::new(), HashMap::new(), Vec::new(), 0);
         }
     }else{
         println!("Unsupported mode!");

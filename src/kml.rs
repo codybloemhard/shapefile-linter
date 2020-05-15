@@ -1,8 +1,9 @@
 use std::fs::File;
-use std::collections::HashMap;
+use std::collections::{HashMap,HashSet};
 use xml::reader::{EventReader,XmlEvent};
 use crate::data::VvP4;
 use crate::convert::degree_to_utm;
+use hex::FromHex;
 // right amount of spaces for x indentations
 fn indent(size: usize) -> String{
     const INDENT: &'static str = "  ";
@@ -145,7 +146,8 @@ pub fn kml_height(path: String) -> VvP4{
     vvp4
 }
 //parse geological kml file
-pub fn kml_geo(path: String){
+pub fn kml_geo(path: String, mut colset: HashSet<String>, mut colmap: HashMap<String,usize>,
+    mut styles: Vec<(usize,u8,u8,u8,u8)>, mut counter: usize){
     let file = open_file!(path);
     let parser = EventReader::new(file);
     let mut in_poly_style = false;
@@ -230,6 +232,27 @@ pub fn kml_geo(path: String){
             _ => {}
         }
     }
-    println!("{:?}", styles_raw);
-    println!("{:?}", polygons);
+    for (id,colourstr,outline) in styles_raw{
+        if colset.contains(&colourstr) { continue; }
+        colmap.insert(id.clone(), counter);
+        colset.insert(colourstr.clone());
+        let outl = if outline == '1' { 1u8 }
+        else { 0u8 };
+        let components = if let Ok(c) = Vec::from_hex(colourstr)
+        { c } else { panic!("Could not parse hex colour!"); };
+        if components.len() < 3 {
+            panic!("Expected at least 3 components in colour!");
+        }
+        let offset = components.len() - 3;
+        let r = components[offset];
+        let g = components[offset + 1];
+        let b = components[offset + 2];
+        styles.push((counter,outl,r,g,b));
+        counter += 1;
+    }
+    for (sturl,outersraw,innersraw) in polygons{
+        let id = if let Some(idd) = colmap.get(&sturl)
+        { idd } else { panic!("Could not find colour id!"); };
+        let outers = Vec::new();
+    }
 }
