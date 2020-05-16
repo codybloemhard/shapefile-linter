@@ -24,7 +24,6 @@ impl FromF64 for u32{ fn from(x: f64) -> Self{ x as u32 } }
 impl FromF64 for f32{ fn from(x: f64) -> Self{ x as f32 } }
 impl FromF64 for f64{ fn from(x: f64) -> Self{ x as f64 } }
 
-
 // Peform compression by using a range offset and multiplier
 pub trait OffScaleFromU64{
     fn offscale(x: f64, o: u64, m: u64) -> Self;
@@ -67,7 +66,7 @@ macro_rules! ImplCompressable {
                             ns.iter_mut().for_each(|x| x.update_bb());
                             let bb = get_global_bb(&ns);
                             println!("Global Boundingbox: {:?}", bb);
-                            // triangulate?
+                            // transform?
                             let ns = $trans(ns);
                             bb.into_buffer(&mut buffer);
                             ns.into_buffer(&mut buffer);

@@ -151,7 +151,7 @@ pub fn kml_height(path: String) -> VvP4{
 }
 //parse geological kml file
 pub fn kml_geo(path: String, colset: &mut HashSet<String>, colmap: &mut HashMap<String,usize>,
-    styles: &mut Vec<(usize,u8,u8,u8,u8)>, counter: &mut usize) -> Vec<(usize,VvP4,VvP4)>{
+    styles: &mut Vec<(usize,u8,u8,u8,u8)>, counter: &mut usize) -> Vec<(usize,(VvP4,VvP4))>{
     let file = open_file!(path);
     let parser = EventReader::new(file);
     let mut in_poly_style = false;
@@ -237,9 +237,9 @@ pub fn kml_geo(path: String, colset: &mut HashSet<String>, colmap: &mut HashMap<
         }
     }
     for (id,colourstr,outline) in styles_raw{
-        if colset.contains(&colourstr) { continue; }
+        if colset.contains(&id) { continue; }
         colmap.insert(id.clone(), *counter);
-        colset.insert(colourstr.clone());
+        colset.insert(id.clone());
         let outl = if outline == '1' { 1u8 }
         else { 0u8 };
         let components = if let Ok(c) = Vec::from_hex(colourstr)
@@ -256,8 +256,8 @@ pub fn kml_geo(path: String, colset: &mut HashSet<String>, colmap: &mut HashMap<
     }
     let mut polys = Vec::new();
     for (sturl,outersraw,innersraw) in polygons{
-        let id = if let Some(idd) = colmap.get(&sturl)
-        { *idd } else { panic!("Could not find colour id!"); };
+        let id = if let Some(idd) = colmap.get(&sturl.chars().filter(|c| *c != '#').collect::<String>())
+        { *idd } else { println!("Could not find colour id: {} with polygons length: {}, {}", sturl, outersraw.len(), innersraw.len()); continue; };
         let mut outers = Vec::new();
         for outerraw in outersraw{
             outers.push(parse_coords(outerraw));
@@ -266,7 +266,7 @@ pub fn kml_geo(path: String, colset: &mut HashSet<String>, colmap: &mut HashMap<
         for innerraw in innersraw{
             inners.push(parse_coords(innerraw));
         }
-        polys.push((id,outers,inners));
+        polys.push((id,(outers,inners)));
     }
     polys
 }

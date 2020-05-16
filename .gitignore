@@ -13,3 +13,4 @@ Cargo.lock
 **/*.chunk
 **/*.info
 **/*.zip
+**/*outp

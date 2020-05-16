@@ -289,7 +289,20 @@ fn do_things() -> Option<()>{
             let mut map = HashMap::new();
             let mut styles = Vec::new();
             let mut counter = 0;
-            kml_geo(file, &mut set, &mut map, &mut styles, &mut counter);
+            let polys = kml_geo(file, &mut set, &mut map, &mut styles, &mut counter);
+            let stpolyzs: Vec<_>= polys.into_iter().map(|(sty,poly)| (sty,PolygonZ::from(poly))).collect();
+            let mut stys = Vec::new();
+            let mut polyzs = Vec::new();
+            for (st,polyz) in stpolyzs{
+                stys.push(st);
+                polyzs.push(polyz);
+            }
+            let infos = info_package(&polyzs);
+            let mut buffer = polyzs.triangle_compress(infos);
+            stys.into_buffer(&mut buffer);
+            let ok = buffer_write_file(&Path::new(&outfile), &buffer);
+            println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
+                     timer.elapsed().as_millis());
         }
     }else{
         println!("Unsupported mode!");

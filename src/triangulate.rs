@@ -100,9 +100,11 @@ where
     u8: Into<T>,
     T: Into<f64> + FromF64
 {
+    let mut skipped = 0;
     let mut res = Vec::new();
     for polygon in polyzs{
-        let grouped_polygons = group_polygons(polygon);
+        let grouped_polygons = if let Some(gp) = group_polygons(polygon)
+        { gp } else { skipped += 1; continue; };
 
         for (mut outer,inners) in grouped_polygons{
             let mut vertices = merge_inner(&mut outer, inners);
@@ -120,10 +122,11 @@ where
             });
         }
     }
+    if skipped > 0 { println!("Skipped {} groups.", skipped); }
     res
 }
 
-fn group_polygons<T>(polygon: PolygonZ<T>) -> Vec<(Vec<P3<T>>, Vvec<P3<T>>)>
+fn group_polygons<T>(polygon: PolygonZ<T>) -> Option<Vec<(Vec<P3<T>>, Vvec<P3<T>>)>>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
     u8: Into<T>,
@@ -160,11 +163,11 @@ where
             }
         }
 
-        if max == -1 {panic!("inner ring not inside any outer rings")}
+        if max == -1 { return None; }
 
         grouped_inners[max_index].push(inner);
     }
-    polygon.outers.into_iter().zip(grouped_inners).collect()
+    Some(polygon.outers.into_iter().zip(grouped_inners).collect())
 }
 
 fn merge_inner<T>(outer: &mut Vec<P3<T>>, mut inners: Vvec<P3<T>>) -> Vec<P3<T>>
