@@ -5,11 +5,12 @@ use std::cmp::Ordering;
 use std::ops::{Add,Sub,Div,Mul};
 use bin_buffer::*;
 use crate::compress::*;
+use std::convert::TryFrom;
 
 #[derive(Clone)]
 pub struct PolyTriangle<T>{
     vertices: Vec<(T,T)>,
-    indices: Vec<usize>,
+    indices: Vec<u16>,
 }
 
 impl<T: Bufferable + Clone> Bufferable for PolyTriangle<T>{
@@ -24,7 +25,7 @@ impl<T: Bufferable + Clone> Bufferable for PolyTriangle<T>{
 
     fn from_buffer(buf: &mut ReadBuffer) -> Option<Self>{
         let vertices = Vec::<(T,T)>::from_buffer(buf)?;
-        let indices = Vec::<usize>::from_buffer(buf)?;
+        let indices = Vec::<u16>::from_buffer(buf)?;
         Some(Self{
             vertices,
             indices,
@@ -36,7 +37,7 @@ struct PolyPoint<T>{
     point: P3<T>,
     reflex: bool,
     ear: bool,
-    index: usize
+    index: u16
 }
 
 pub fn test(){
@@ -257,7 +258,7 @@ where
     rightmost
 }
 
-fn make_indices<T>(vertices: &[P3<T>]) -> Vec<usize>
+fn make_indices<T>(vertices: &[P3<T>]) -> Vec<u16>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
     T: Into<f64>
@@ -272,7 +273,7 @@ where
             point: *point,
             reflex: false,
             ear: false,
-            index: i
+            index: u16::try_from(i).expect("Triangulation index did not fit into u16!"),
         };
         orig_indices.push(remaining_polygon.push_back(p));
     }
