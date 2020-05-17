@@ -304,6 +304,11 @@ fn do_things() -> Option<()>{
             println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
                      timer.elapsed().as_millis());
         }
+    }else if mode == "lmao"{
+        for file in infiles{
+            println!("{}", check_tag_child(file.clone(),String::from("placemark"),String::from("styleurl")));
+            println!("{}", check_nonempty_tag(file,String::from("styleurl")));
+        }
     }else{
         println!("Unsupported mode!");
     }

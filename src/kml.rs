@@ -60,6 +60,74 @@ pub fn print_xml_tag_tree(path: String){
         }
     }
 }
+// check if a certain tags is always present in another tag
+pub fn check_tag_child(path: String, parent: String, child: String) -> bool{
+    let file = open_file!(path);
+    let parser = EventReader::new(file);
+    let mut inside = false;
+    let mut seen = false;
+    for e in parser{
+        match e{
+            Ok(XmlEvent::StartElement { name, .. }) => {
+                let cleaned = clean_name(name.to_string());
+                if cleaned == parent{ inside = true; seen = false; }
+                else if cleaned == child && inside { seen = true; }
+            }
+            Ok(XmlEvent::EndElement { name, .. }) => {
+                let cleaned = clean_name(name.to_string());
+                if cleaned == parent{
+                    if !inside { panic!("Found end tag of parent with seeing the start tag, somehow..."); }
+                    if !seen{
+                        return false;
+                    }
+                    inside = false;
+                    seen = false;
+                }
+            }
+            Err(e) => {
+                println!("Error: {}", e);
+                break;
+            }
+            _ => {}
+        }
+    }
+    true
+}
+pub fn check_nonempty_tag(path: String, tag: String) -> bool{
+    let file = open_file!(path);
+    let parser = EventReader::new(file);
+    let mut in_tag = false;
+    let mut inside = String::new();
+    for e in parser{
+        match e{
+            Ok(XmlEvent::StartElement { name, .. }) => {
+                let nname = clean_name(name.to_string());
+                if nname == tag{
+                    in_tag = true;
+                }
+            }
+            Ok(XmlEvent::Characters(content)) => {
+                if in_tag{
+                    inside = content;
+                }
+            }
+            Ok(XmlEvent::EndElement{ name }) => {
+                let nname = clean_name(name.to_string());
+                if nname == tag{
+                    if &inside == "" { return false; }
+                    in_tag = false;
+                    inside = String::new();
+                }
+            }
+            Err(e) => {
+                println!("Error: {}", e);
+                break;
+            }
+            _ => {}
+        }
+    }
+    true
+}
 // count all tags and print them out with counts
 pub fn print_xml_tag_count(path: String){
     let file = open_file!(path);
@@ -223,6 +291,7 @@ pub fn kml_geo(path: String, colset: &mut HashSet<String>, colmap: &mut HashMap<
                 else if &nname == "innerboundaryis" { in_inner = false; }
                 else if &nname == "coordinates" { in_coordinates = false; }
                 else if &nname == "polygon" {
+                    if &style_url == "" { panic!("bruhh"); }
                     polygons.push((style_url,outers,inners));
                     style_url = String::new();
                     outers = Vec::new();
@@ -257,7 +326,7 @@ pub fn kml_geo(path: String, colset: &mut HashSet<String>, colmap: &mut HashMap<
     let mut polys = Vec::new();
     for (sturl,outersraw,innersraw) in polygons{
         let id = if let Some(idd) = colmap.get(&sturl.chars().filter(|c| *c != '#').collect::<String>())
-        { *idd } else { println!("Could not find colour id: {} with polygons length: {}, {}", sturl, outersraw.len(), innersraw.len()); continue; };
+        { *idd } else { println!("Could not find colour id: {:?} with polygons length: {}, {}", sturl, outersraw.len(), innersraw.len()); continue; };
         let mut outers = Vec::new();
         for outerraw in outersraw{
             outers.push(parse_coords(outerraw));
