@@ -31,7 +31,7 @@ fn clean_name(name: String) -> String{
 // open file or die
 macro_rules! open_file{
     ($path:expr) => {
-        if let Ok(ffile) = File::open(&$path){
+        if let Ok(ffile) = File::open($path){
             ffile
         }else{
             panic!("Could not open file: {}", $path);
@@ -39,7 +39,7 @@ macro_rules! open_file{
     };
 }
 // print a indented tree of opening xml tags
-pub fn print_xml_tag_tree(path: String){
+pub fn print_xml_tag_tree(path: &str){
     let file = open_file!(path);
     let parser = EventReader::new(file);
     let mut depth = 0;
@@ -61,7 +61,7 @@ pub fn print_xml_tag_tree(path: String){
     }
 }
 // check if a certain tags is always present in another tag
-pub fn check_tag_child(path: String, parent: String, child: String) -> bool{
+pub fn check_tag_child(path: &str, parent: &str, child: &str) -> bool{
     let file = open_file!(path);
     let parser = EventReader::new(file);
     let mut inside = false;
@@ -70,12 +70,12 @@ pub fn check_tag_child(path: String, parent: String, child: String) -> bool{
         match e{
             Ok(XmlEvent::StartElement { name, .. }) => {
                 let cleaned = clean_name(name.to_string());
-                if cleaned == parent{ inside = true; seen = false; }
-                else if cleaned == child && inside { seen = true; }
+                if &cleaned == parent{ inside = true; seen = false; }
+                else if &cleaned == child && inside { seen = true; }
             }
             Ok(XmlEvent::EndElement { name, .. }) => {
                 let cleaned = clean_name(name.to_string());
-                if cleaned == parent{
+                if &cleaned == parent{
                     if !inside { panic!("Found end tag of parent with seeing the start tag, somehow..."); }
                     if !seen{
                         return false;
@@ -93,7 +93,7 @@ pub fn check_tag_child(path: String, parent: String, child: String) -> bool{
     }
     true
 }
-pub fn check_nonempty_tag(path: String, tag: String) -> bool{
+pub fn check_nonempty_tag(path: &str, tag: &str) -> bool{
     let file = open_file!(path);
     let parser = EventReader::new(file);
     let mut in_tag = false;
@@ -102,7 +102,7 @@ pub fn check_nonempty_tag(path: String, tag: String) -> bool{
         match e{
             Ok(XmlEvent::StartElement { name, .. }) => {
                 let nname = clean_name(name.to_string());
-                if nname == tag{
+                if &nname == tag{
                     in_tag = true;
                 }
             }
@@ -113,7 +113,7 @@ pub fn check_nonempty_tag(path: String, tag: String) -> bool{
             }
             Ok(XmlEvent::EndElement{ name }) => {
                 let nname = clean_name(name.to_string());
-                if nname == tag{
+                if &nname == tag{
                     if &inside == "" { return false; }
                     in_tag = false;
                     inside = String::new();
@@ -129,7 +129,7 @@ pub fn check_nonempty_tag(path: String, tag: String) -> bool{
     true
 }
 // count all tags and print them out with counts
-pub fn print_xml_tag_count(path: String){
+pub fn print_xml_tag_count(path: &str){
     let file = open_file!(path);
     let mut map = HashMap::new();
     let parser = EventReader::new(file);
@@ -181,7 +181,7 @@ pub fn parse_coords(string: String) -> Vec<P4<f64>>{
     line
 }
 // parse heightlines from kml file
-pub fn kml_height(path: String) -> VvP4{
+pub fn kml_height(path: &str) -> VvP4{
     let file = open_file!(path);
     let parser = EventReader::new(file);
     let coord_name = String::from("coordinates");
@@ -218,7 +218,7 @@ pub fn kml_height(path: String) -> VvP4{
     vvp4
 }
 //parse geological kml file
-pub fn kml_geo(path: String, colset: &mut HashSet<String>, colmap: &mut HashMap<String,usize>,
+pub fn kml_geo(path: &str, colset: &mut HashSet<String>, colmap: &mut HashMap<String,usize>,
     styles: &mut Vec<(usize,u8,u8,u8,u8)>, counter: &mut usize) -> Vec<(usize,(VvP4,VvP4))>{
     let file = open_file!(path);
     let parser = EventReader::new(file);
@@ -291,7 +291,7 @@ pub fn kml_geo(path: String, colset: &mut HashSet<String>, colmap: &mut HashMap<
                 else if &nname == "innerboundaryis" { in_inner = false; }
                 else if &nname == "coordinates" { in_coordinates = false; }
                 else if &nname == "polygon" {
-                    if &style_url == "" { panic!("bruhh"); }
+                    //if &style_url == "" { panic!("bruhh"); }
                     polygons.push((style_url,outers,inners));
                     style_url = String::new();
                     outers = Vec::new();
