@@ -309,7 +309,7 @@ fn do_things() -> Option<()>{
             println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
                     timer.elapsed().as_millis());
             let mut stylebuffer = Vec::new();
-            styles.into_iter().map(|(c,o,r,g,b)| ((c,o),(r,g,b))).collect::<Vec<_>>().into_buffer(&mut stylebuffer);
+            styles.into_buffer(&mut stylebuffer);
             ok = buffer_write_file(&Path::new("styles"), &stylebuffer);
             println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
                     timer.elapsed().as_millis());
