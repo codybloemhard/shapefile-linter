@@ -10,6 +10,10 @@ pub enum Issue{
     NonOriginBoundingbox,
     EmptyStyleId,
     MissingStyleId,
+    PolyNotEnoughVertices,
+    OutOfIndicesBound,
+    NoEarsLeft,
+    InnerNotInside,
 }
 
 #[derive(Default)]
@@ -48,6 +52,14 @@ impl Logger{
                     println!("({} times) Empty Style ID!", count),
                 Issue::MissingStyleId =>
                     println!("({} times) Missing Style ID!", count),
+                Issue::PolyNotEnoughVertices =>
+                    println!("({} times) Polygon has less than 3 vertices!", count),
+                Issue::OutOfIndicesBound =>
+                    println!("({} times) Polygon has more indices than fit in u16!", count),
+                Issue::NoEarsLeft =>
+                    println!("({} times) Triangulation: no ears left!", count),
+                Issue::InnerNotInside =>
+                    println!("({} times) Inner polygon not inside any outer polygon!", count),
             }
         }
     }

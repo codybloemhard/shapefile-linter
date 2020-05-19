@@ -103,19 +103,17 @@ where
     u8: Into<T>,
     T: Into<f64> + FromF64
 {
-    let mut group_skipped = 0;
-    let mut single_skipped = 0;
     let mut res = Vec::new();
     for polygon in polyzs{
-        let grouped_polygons = if let Some(gp) = group_polygons(polygon)
-        { gp } else { group_skipped += 1; continue; };
+        let grouped_polygons = if let Some(gp) = group_polygons(polygon, logger)
+        { gp } else {  continue; };
 
         for (mut outer,inners) in grouped_polygons{
             let mut vertices = merge_inner(&mut outer, inners);
             vertices.dedup();
             if vertices[0] == vertices[vertices.len()-1]{vertices.pop();}
-            let cur_indices = if let Some(x) = make_indices(&vertices, logger) { x }
-            else { single_skipped += 1; continue; };
+            let cur_indices = if let Some(x) = make_indices(&vertices, logger)
+            { x } else {  continue; };
 
             let mut p2vertices = Vec::new();
             for (x,y,_) in vertices{
@@ -127,12 +125,10 @@ where
             });
         }
     }
-    if group_skipped > 0 { println!("Skipped {} groups.", group_skipped); }
-    if single_skipped > 0 { println!("Skipped {} single polygons", single_skipped); }
     res
 }
 
-fn group_polygons<T>(polygon: PolygonZ<T>) -> Option<Vec<(Vec<P3<T>>, Vvec<P3<T>>)>>
+fn group_polygons<T>(polygon: PolygonZ<T>, logger: &mut Logger) -> Option<Vec<(Vec<P3<T>>, Vvec<P3<T>>)>>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
     u8: Into<T>,
@@ -169,7 +165,10 @@ where
             }
         }
 
-        if max == -1 { return None; }
+        if max == -1 {
+            logger.log(Issue::InnerNotInside);
+            return None;
+        }
 
         grouped_inners[max_index].push(inner);
     }
@@ -269,7 +268,7 @@ where
     T: Into<f64>
 {
     if vertices.len() < 3 {
-        // polygon can't have less than 3 vertices
+        logger.log(Issue::PolyNotEnoughVertices);
         return None;
     }
 
@@ -279,7 +278,7 @@ where
     for (i,point) in vertices.iter().enumerate(){
         let x = u16::try_from(i);
         if x.is_err(){
-            // triangle indices can't fit in u16
+            logger.log(Issue::OutOfIndicesBound);
             return None;
         }
         let p = PolyPoint{
@@ -314,7 +313,7 @@ where
         step+=1;
 
         if step > vertices.len(){
-            // no ears left
+            logger.log(Issue::NoEarsLeft);
             return None;
         }
 

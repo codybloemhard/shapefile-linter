@@ -302,6 +302,7 @@ fn do_things() -> Option<()>{
                 polyzs.push(polyz);
             }
         }
+        println!("There are {} polygons!", polyzs.len());
         let infos = info_package(&polyzs);
         let mut buffer = polyzs.triangle_compress(infos, &mut logger);
         stys.into_buffer(&mut buffer);
