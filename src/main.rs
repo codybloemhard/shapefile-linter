@@ -305,9 +305,15 @@ fn do_things() -> Option<()>{
             let infos = info_package(&polyzs);
             let mut buffer = polyzs.triangle_compress(infos);
             stys.into_buffer(&mut buffer);
-            let ok = buffer_write_file(&Path::new(&outfile), &buffer);
+            let mut ok = buffer_write_file(&Path::new(&outfile), &buffer);
             println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
-                     timer.elapsed().as_millis());
+                    timer.elapsed().as_millis());
+            let mut stylebuffer = Vec::new();
+            styles.into_iter().map(|(c,o,r,g,b)| ((c,o),(r,g,b))).collect::<Vec<_>>().into_buffer(&mut stylebuffer);
+            ok = buffer_write_file(&Path::new("styles"), &stylebuffer);
+            println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
+                    timer.elapsed().as_millis());
+
         }
     }else if mode == "check-tag-child"{
         for file in infiles{
