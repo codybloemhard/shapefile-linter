@@ -8,6 +8,8 @@ pub enum Issue{
     EmptyShape,
     MultiChunkShape,
     NonOriginBoundingbox,
+    EmptyStyleId,
+    MissingStyleId,
 }
 
 #[derive(Default)]
@@ -42,6 +44,10 @@ impl Logger{
                     println!("({} times) Multi chunk shape!", count),
                 Issue::NonOriginBoundingbox =>
                     println!("({} times) Mother chunk left top bounding box is not at origin!", count),
+                Issue::EmptyStyleId =>
+                    println!("({} times) Empty Style ID!", count),
+                Issue::MissingStyleId =>
+                    println!("({} times) Missing Style ID!", count),
             }
         }
     }

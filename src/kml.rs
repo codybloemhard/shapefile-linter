@@ -3,6 +3,7 @@ use std::collections::{HashMap,HashSet};
 use xml::reader::{EventReader,XmlEvent};
 use crate::data::{VvP4,P4};
 use crate::convert::degree_to_utm;
+use crate::logger::*;
 use hex::FromHex;
 // right amount of spaces for x indentations
 fn indent(size: usize) -> String{
@@ -219,7 +220,7 @@ pub fn kml_height(path: &str) -> VvP4{
 }
 //parse geological kml file
 pub fn kml_geo(path: &str, colset: &mut HashSet<String>, colmap: &mut HashMap<String,usize>,
-    styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize) -> Vec<(usize,(VvP4,VvP4))>{
+    styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize, logger: &mut Logger) -> Vec<(usize,(VvP4,VvP4))>{
     let file = open_file!(path);
     let parser = EventReader::new(file);
     let mut in_poly_style = false;
@@ -325,8 +326,15 @@ pub fn kml_geo(path: &str, colset: &mut HashSet<String>, colmap: &mut HashMap<St
     }
     let mut polys = Vec::new();
     for (sturl,outersraw,innersraw) in polygons{
+        if &sturl == ""{
+            logger.log(Issue::EmptyStyleId);
+            continue;
+        }
         let id = if let Some(idd) = colmap.get(&sturl.chars().filter(|c| *c != '#').collect::<String>())
-        { *idd } else { println!("Could not find colour id: {:?} with polygons length: {}, {}", sturl, outersraw.len(), innersraw.len()); continue; };
+        { *idd } else {
+            logger.log(Issue::MissingStyleId);
+            continue;
+        };
         let mut outers = Vec::new();
         for outerraw in outersraw{
             outers.push(parse_coords(outerraw));

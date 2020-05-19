@@ -25,7 +25,6 @@ use logger::*;
 use data::*;
 use crate::data::{PolygonZ};
 use chunkify::*;
-use triangulate::*;
 use kml::*;
 
 fn main(){
@@ -86,7 +85,7 @@ fn do_things() -> Option<()>{
     macro_rules! compress_and_write{
         ($col:expr) =>{
             let infos = info_package(&$col);
-            let buffer = $col.compress(infos);
+            let buffer = $col.compress(infos, &mut logger);
             let ok = buffer_write_file(&Path::new(&outfile), &buffer);
             println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
                      timer.elapsed().as_millis());
@@ -253,7 +252,7 @@ fn do_things() -> Option<()>{
         let polys = split(shapes, &mut logger).11;
         let polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(PolygonZ::from).collect();
         let infos = info_package(&polyzs);
-        let buffer = polyzs.compress(infos);
+        let buffer = polyzs.compress(infos, &mut logger);
         println!("Bufferized: {} ms", timer.elapsed().as_millis());
         let ok = buffer_write_file(&Path::new(&outfile), &buffer);
         println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
@@ -263,7 +262,7 @@ fn do_things() -> Option<()>{
         let polys = split(shapes, &mut logger).11;
         let polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(PolygonZ::from).collect();
         let infos = info_package(&polyzs);
-        let buffer = polyzs.triangle_compress(infos);
+        let buffer = polyzs.triangle_compress(infos, &mut logger);
         let ok = buffer_write_file(&Path::new(&outfile), &buffer);
         println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
                  timer.elapsed().as_millis());
@@ -273,7 +272,7 @@ fn do_things() -> Option<()>{
         let shapezs = compress_heightmap(plinezs, &mut logger);
         println!("Compressed: {} ms", timer.elapsed().as_millis());
         let infos = info_package(&shapezs);
-        let buffer = shapezs.compress(infos);
+        let buffer = shapezs.compress(infos, &mut logger);
         println!("Bufferized: {} ms", timer.elapsed().as_millis());
         let ok = buffer_write_file(&Path::new(&outfile), &buffer);
         println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
@@ -288,33 +287,32 @@ fn do_things() -> Option<()>{
             println!("\t File: {}", file);
             print_xml_tag_count(&file);
         }
-    }else if mode == "geo"{
+    }else if mode == "geomerge"{
+        let mut set = HashSet::new();
+        let mut map = HashMap::new();
+        let mut styles = Vec::new();
+        let mut counter = 0;
+        let mut stys = Vec::new();
+        let mut polyzs = Vec::new();
         for file in infiles{
-            let mut set = HashSet::new();
-            let mut map = HashMap::new();
-            let mut styles = Vec::new();
-            let mut counter = 0;
-            let polys = kml_geo(&file, &mut set, &mut map, &mut styles, &mut counter);
-            let stpolyzs: Vec<_>= polys.into_iter().map(|(sty,poly)| (sty,PolygonZ::from(poly))).collect();
-            let mut stys = Vec::new();
-            let mut polyzs = Vec::new();
+            let polys = kml_geo(&file, &mut set, &mut map, &mut styles, &mut counter, &mut logger);
+            let stpolyzs: Vec<_> = polys.into_iter().map(|(sty,poly)| (sty,PolygonZ::from(poly))).collect();
             for (st,polyz) in stpolyzs{
                 stys.push(st);
                 polyzs.push(polyz);
             }
-            let infos = info_package(&polyzs);
-            let mut buffer = polyzs.triangle_compress(infos);
-            stys.into_buffer(&mut buffer);
-            let mut ok = buffer_write_file(&Path::new(&outfile), &buffer);
-            println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
-                    timer.elapsed().as_millis());
-            let mut stylebuffer = Vec::new();
-            styles.into_buffer(&mut stylebuffer);
-            ok = buffer_write_file(&Path::new("styles"), &stylebuffer);
-            println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
-                    timer.elapsed().as_millis());
-
         }
+        let infos = info_package(&polyzs);
+        let mut buffer = polyzs.triangle_compress(infos, &mut logger);
+        stys.into_buffer(&mut buffer);
+        let mut ok = buffer_write_file(&Path::new(&outfile), &buffer);
+        println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
+                timer.elapsed().as_millis());
+        let mut stylebuffer = Vec::new();
+        styles.into_buffer(&mut stylebuffer);
+        ok = buffer_write_file(&Path::new("styles"), &stylebuffer);
+        println!("Writing file \"{}\", went ok?: {}, {} ms", "styles", ok,
+                timer.elapsed().as_millis());
     }else if mode == "check-tag-child"{
         for file in infiles{
             println!("{}", check_tag_child(&file,&tag0,&tag1));

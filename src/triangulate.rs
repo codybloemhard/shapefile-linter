@@ -1,6 +1,7 @@
 use crate::data::PolygonZ;
 use dlv_list::*;
 use crate::data::*;
+use crate::logger::*;
 use std::cmp::Ordering;
 use std::ops::{Add,Sub,Div,Mul};
 use bin_buffer::*;
@@ -78,7 +79,8 @@ pub fn test(){
         ],
         bb: ((0.0,0.0,0.0),(0.0,0.0,0.0))
     });
-    let res = triangulate(polyzs);
+    let mut logger = Logger::default();
+    let res = triangulate(polyzs, &mut logger);
 
     for polyt in res{
         print!("vertices: ");
@@ -95,23 +97,25 @@ pub fn test(){
     }
 }
 
-pub fn triangulate<T>(polyzs: Vec<PolygonZ<T>>) -> Vec<PolyTriangle<T>>
+pub fn triangulate<T>(polyzs: Vec<PolygonZ<T>>, logger: &mut Logger) -> Vec<PolyTriangle<T>>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + Default + MinMax,
     u8: Into<T>,
     T: Into<f64> + FromF64
 {
-    let mut skipped = 0;
+    let mut group_skipped = 0;
+    let mut single_skipped = 0;
     let mut res = Vec::new();
     for polygon in polyzs{
         let grouped_polygons = if let Some(gp) = group_polygons(polygon)
-        { gp } else { skipped += 1; continue; };
+        { gp } else { group_skipped += 1; continue; };
 
         for (mut outer,inners) in grouped_polygons{
             let mut vertices = merge_inner(&mut outer, inners);
             vertices.dedup();
             if vertices[0] == vertices[vertices.len()-1]{vertices.pop();}
-            let cur_indices = make_indices(&vertices);
+            let cur_indices = if let Some(x) = make_indices(&vertices, logger) { x }
+            else { single_skipped += 1; continue; };
 
             let mut p2vertices = Vec::new();
             for (x,y,_) in vertices{
@@ -123,7 +127,8 @@ where
             });
         }
     }
-    if skipped > 0 { println!("Skipped {} groups.", skipped); }
+    if group_skipped > 0 { println!("Skipped {} groups.", group_skipped); }
+    if single_skipped > 0 { println!("Skipped {} single polygons", single_skipped); }
     res
 }
 
@@ -258,22 +263,30 @@ where
     rightmost
 }
 
-fn make_indices<T>(vertices: &[P3<T>]) -> Vec<u16>
+fn make_indices<T>(vertices: &[P3<T>], logger: &mut Logger) -> Option<Vec<u16>>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
     T: Into<f64>
 {
-    if vertices.len() < 3 {panic!("polygon can't have fewer than 3 sides")}
+    if vertices.len() < 3 {
+        // polygon can't have less than 3 vertices
+        return None;
+    }
 
     let mut remaining_polygon = VecList::new();
     remaining_polygon.reserve(vertices.len());
     let mut orig_indices = Vec::new();
     for (i,point) in vertices.iter().enumerate(){
+        let x = u16::try_from(i);
+        if x.is_err(){
+            // triangle indices can't fit in u16
+            return None;
+        }
         let p = PolyPoint{
             point: *point,
             reflex: false,
             ear: false,
-            index: u16::try_from(i).expect("Triangulation index did not fit into u16!"),
+            index: x.unwrap(),
         };
         orig_indices.push(remaining_polygon.push_back(p));
     }
@@ -301,7 +314,8 @@ where
         step+=1;
 
         if step > vertices.len(){
-            panic!("no ears left!");
+            // no ears left
+            return None;
         }
 
         let cur = remaining_polygon.get(cur_index).unwrap();
@@ -329,7 +343,7 @@ where
     for point in remaining_polygon{
         indices.push(point.index);
     }
-    indices
+    Some(indices)
 }
 
 fn next_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> &T{
