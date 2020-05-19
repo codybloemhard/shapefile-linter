@@ -291,7 +291,7 @@ pub fn kml_geo(path: String, colset: &mut HashSet<String>, colmap: &mut HashMap<
                 else if &nname == "innerboundaryis" { in_inner = false; }
                 else if &nname == "coordinates" { in_coordinates = false; }
                 else if &nname == "polygon" {
-                    if &style_url == "" { panic!("bruhh"); }
+                    if &style_url == "" { /*panic!("bruhh");*/ }
                     polygons.push((style_url,outers,inners));
                     style_url = String::new();
                     outers = Vec::new();
