@@ -39,13 +39,18 @@ fn do_things() -> Option<()>{
       <inputfile> (string...) input file(s) name(s)
       --output (default outp) (string) define output file
       --mode (default info) (string) what to do
-      --ft (default none) (string) type of input file"
+      --ft (default none) (string) type of input file
+      --tag0 (default none) (string) xml tag variable
+      --tag1 (default none) (string) xml tag variable
+      "
     );
 
     let infiles = args.get_strings("inputfile");
     let outfile = args.get_string("output");
     let mode = args.get_string("mode");
     let ft = args.get_string("ft");
+    let tag0 = args.get_string("tag0");
+    let tag1 = args.get_string("tag1");
 
     let mut logger = Logger::default();
 
@@ -61,7 +66,7 @@ fn do_things() -> Option<()>{
     };
     // Take all files
     let read_single_file = |infile: String|{
-        if let Ok(shapes) = shapefile::read(infile.clone()){
+        if let Ok(shapes) = shapefile::read(&infile){
             println!("Read file \"{}\": {} ms, shapes: {}", infile, timer.elapsed().as_millis(), shapes.len());
             Option::Some(shapes)
         }else{
@@ -99,7 +104,7 @@ fn do_things() -> Option<()>{
                 let shapes = read_single_file($path)?;
                 split(shapes, &mut logger).5
             }else if &ft == "kml"{
-                kml_height($path)
+                kml_height(&$path)
             }else{
                 println!("Unknown filetype specified!");
                 logger.report();
@@ -276,12 +281,12 @@ fn do_things() -> Option<()>{
     }else if mode == "xmltree"{// print out the xml open tags in indented tree form.
         for file in infiles{
             println!("\t File: {}", file);
-            print_xml_tag_tree(file);
+            print_xml_tag_tree(&file);
         }
     }else if mode == "xmltags"{// print out every xml tag with its count.
         for file in infiles{
             println!("\t File: {}", file);
-            print_xml_tag_count(file);
+            print_xml_tag_count(&file);
         }
     }else if mode == "geo"{
         for file in infiles{
@@ -289,7 +294,7 @@ fn do_things() -> Option<()>{
             let mut map = HashMap::new();
             let mut styles = Vec::new();
             let mut counter = 0;
-            let polys = kml_geo(file, &mut set, &mut map, &mut styles, &mut counter);
+            let polys = kml_geo(&file, &mut set, &mut map, &mut styles, &mut counter);
             let stpolyzs: Vec<_>= polys.into_iter().map(|(sty,poly)| (sty,PolygonZ::from(poly))).collect();
             let mut stys = Vec::new();
             let mut polyzs = Vec::new();
@@ -304,10 +309,13 @@ fn do_things() -> Option<()>{
             println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
                      timer.elapsed().as_millis());
         }
-    }else if mode == "lmao"{
+    }else if mode == "check-tag-child"{
         for file in infiles{
-            println!("{}", check_tag_child(file.clone(),String::from("placemark"),String::from("styleurl")));
-            println!("{}", check_nonempty_tag(file,String::from("styleurl")));
+            println!("{}", check_tag_child(&file,&tag0,&tag1));
+        }
+    }else if mode == "checK-nonempty-tag"{
+        for file in infiles{
+            println!("{}", check_nonempty_tag(&file,&tag0));
         }
     }else{
         println!("Unsupported mode!");
