@@ -101,7 +101,7 @@ pub fn triangulate<T>(polyzs: Vec<PolygonZ<T>>, logger: &mut Logger) -> Vec<Poly
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + Default + MinMax,
     u8: Into<T>,
-    T: Into<f64> + FromF64
+    T: Into<f64> + FromF64 + std::fmt::Debug
 {
     let mut res = Vec::new();
     for polygon in polyzs{
@@ -265,7 +265,7 @@ where
 fn make_indices<T>(vertices: &[P3<T>], logger: &mut Logger) -> Option<Vec<u16>>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
-    T: Into<f64>
+    T: Into<f64> + std::fmt::Debug
 {
     if vertices.len() < 3 {
         logger.log(Issue::PolyNotEnoughVertices);
@@ -313,6 +313,18 @@ where
         step+=1;
 
         if step > vertices.len(){
+            if logger.debug_panic{
+                print!("[");
+                for (x,_,_) in vertices{
+                    print!("{:?} ", x);
+                }
+                print!("],[");
+                for (_,y,_) in vertices{
+                    print!("{:?} ", y);
+                }
+                print!("]");
+                panic!("reeeee");
+            }
             logger.log(Issue::NoEarsLeft);
             return None;
         }

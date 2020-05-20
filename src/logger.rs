@@ -19,6 +19,7 @@ pub enum Issue{
 #[derive(Default)]
 pub struct Logger{
     issues: HashMap<Issue,usize>,
+    pub debug_panic: bool,
 }
 
 impl Logger{
