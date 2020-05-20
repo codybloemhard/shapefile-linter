@@ -9,7 +9,7 @@ fn atan(v: f64) -> f64 { v.atan() }
 fn tan(v: f64) -> f64 { v.tan() }
 fn sqrt(v: f64) -> f64 { v.sqrt() }
 // I don't understand shit about how this works.
-pub fn degree_to_utm((lat,lon): (f64,f64)) -> (usize,char,f64,f64){
+pub fn degree_to_utm((lon,lat): (f64,f64)) -> (usize,char,f64,f64){
     // some constants i pulled out of the code
     let (a,b,c,d,e,f) = (6.0,183.0,1.0,0.5,0.9996,6399593.625);
     let (g,h,i,j,k,l) = (0.0820944379_f64,2.0,3.0,100.0,0.01,0.006739496742);

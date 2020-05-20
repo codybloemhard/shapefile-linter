@@ -173,6 +173,7 @@ pub fn parse_coords(string: String) -> Vec<P4<f64>>{
         if x.is_err() || y.is_err() || z.is_err(){
             panic!("xyz none");
         }
+        // println!("{:?} {:?} {:?}", x, y, z);
         fn hclamp<T: std::fmt::Debug>(c: Result<f64,T>) -> f64{
             (c.unwrap() / 5.0).round() * 5.0
         }
