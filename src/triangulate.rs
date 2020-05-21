@@ -1,4 +1,4 @@
-use crate::data::PolygonZ;
+use crate::data::{PolygonZ,StretchableBB};
 use dlv_list::*;
 use crate::data::*;
 use crate::logger::*;
@@ -104,12 +104,14 @@ where
     T: Into<f64> + FromF64 + std::fmt::Debug
 {
     let mut res = Vec::new();
+    let polyzs = clean_polyzs(polyzs);
     for polygon in polyzs{
         let grouped_polygons = if let Some(gp) = group_polygons(polygon, logger)
         { gp } else {  continue; };
 
         for (mut outer,inners) in grouped_polygons{
             let mut vertices = merge_inner(&mut outer, inners);
+            if vertices.is_empty() { continue; }
             vertices.dedup();
             if vertices[0] == vertices[vertices.len()-1]{vertices.pop();}
             let cur_indices = if let Some(x) = make_indices(&vertices, logger)
@@ -126,6 +128,43 @@ where
         }
     }
     res
+}
+
+fn clean_polyzs<T: Copy + PartialEq + MinMax + Default>
+    (polyzs: Vec<PolygonZ<T>>) -> Vec<PolygonZ<T>>{
+    // input need to have length > 0
+    fn clean_poly<T: Copy + PartialEq>(poly: Vec<T>) -> Vec<T>{
+        let mut new = Vec::new();
+        let mut last = poly[0];
+        for p in poly.into_iter().skip(1){
+            if last == p { continue; }
+            last = p;
+            new.push(p);
+        }
+        new
+    }
+    let mut npolyzs = Vec::new();
+    for polyz in polyzs.into_iter(){
+        let mut nouters = Vec::new();
+        for outer in polyz.outers.into_iter(){
+            if outer.is_empty() { continue; }
+            nouters.push(clean_poly(outer));
+        }
+        let mut ninners = Vec::new();
+        for inner in polyz.inners.into_iter(){
+            if inner.is_empty() { continue; }
+            ninners.push(clean_poly(inner));
+        }
+        let d = T::default();
+        let mut npolyz = PolygonZ{
+            outers: nouters,
+            inners: ninners,
+            bb: ((d,d,d),(d,d,d)),
+        };
+        npolyz.stretch_bb();
+        npolyzs.push(npolyz);
+    }
+    npolyzs
 }
 
 fn group_polygons<T>(polygon: PolygonZ<T>, logger: &mut Logger) -> Option<Vec<(Vec<P3<T>>, Vvec<P3<T>>)>>
