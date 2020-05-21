@@ -136,6 +136,7 @@ fn clean_polyzs<T: Copy + PartialEq + MinMax + Default>
     fn clean_poly<T: Copy + PartialEq>(poly: Vec<T>) -> Vec<T>{
         let mut new = Vec::new();
         let mut last = poly[0];
+        new.push(last);
         for p in poly.into_iter().skip(1){
             if last == p { continue; }
             last = p;
