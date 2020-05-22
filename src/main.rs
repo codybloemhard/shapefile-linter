@@ -28,8 +28,7 @@ use chunkify::*;
 use kml::*;
 
 fn main(){
-    test();
-    //do_things();
+    do_things();
 }
 
 fn do_things() -> Option<()>{
