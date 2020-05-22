@@ -320,11 +320,12 @@ pub struct PolygonZ<T>{
     pub inners: Vvec<P3<T>>,
     pub outers: Vvec<P3<T>>,
     pub bb: BB<T>,
+    pub style: usize,
 }
 // Just a function that we use to build this struct from the raw unpacked data
 // we get from the shapfile
 impl<T: Default + Copy> PolygonZ<T>{
-    pub fn from(raw: Poly<P4<T>>) -> Self{
+    pub fn from(raw: Poly<P4<T>>, style: usize) -> Self{
         let d = T::default();
         fn crunch<T>(raw: Vvec<P4<T>>) -> Vvec<P3<T>>{
             let mut col = Vec::new();
@@ -341,6 +342,7 @@ impl<T: Default + Copy> PolygonZ<T>{
             outers: crunch(raw.0),
             inners: crunch(raw.1),
             bb: ((d,d,d),(d,d,d)),
+            style,
         }
     }
 }
@@ -367,6 +369,7 @@ impl<T: Bufferable + Clone> Bufferable for PolygonZ<T>{
         self.bb.1.into_buffer(buf);
         self.outers.into_buffer(buf);
         self.inners.into_buffer(buf);
+        self.style.into_buffer(buf);
     }
 
     fn copy_into_buffer(&self, buf: &mut Buffer){
@@ -395,10 +398,12 @@ impl<T: Bufferable + Clone> Bufferable for PolygonZ<T>{
         };
         let outers = read_part()?;
         let inners = read_part()?;
+        let style = usize::from_buffer(buf)?;
         Option::Some(Self{
             outers,
             inners,
             bb: (bb0,bb1),
+            style,
         })
     }
 }

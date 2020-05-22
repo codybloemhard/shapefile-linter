@@ -12,12 +12,14 @@ use std::convert::TryFrom;
 pub struct PolyTriangle<T>{
     vertices: Vec<(T,T)>,
     indices: Vec<u16>,
+    style: usize,
 }
 
 impl<T: Bufferable + Clone> Bufferable for PolyTriangle<T>{
     fn into_buffer(self, buf: &mut Buffer){
         self.vertices.into_buffer(buf);
         self.indices.into_buffer(buf);
+        self.style.into_buffer(buf);
     }
 
     fn copy_into_buffer(&self, buf: &mut Buffer){
@@ -27,9 +29,11 @@ impl<T: Bufferable + Clone> Bufferable for PolyTriangle<T>{
     fn from_buffer(buf: &mut ReadBuffer) -> Option<Self>{
         let vertices = Vec::<(T,T)>::from_buffer(buf)?;
         let indices = Vec::<u16>::from_buffer(buf)?;
+        let style = usize::from_buffer(buf)?;
         Some(Self{
             vertices,
             indices,
+            style,
         })
     }
 }
@@ -77,7 +81,8 @@ pub fn test(){
                 (10.0,0.0,0.0)
             ]
         ],
-        bb: ((0.0,0.0,0.0),(0.0,0.0,0.0))
+        bb: ((0.0,0.0,0.0),(0.0,0.0,0.0)),
+        style: 0,
     });
 
 
@@ -109,6 +114,7 @@ where
     let mut skipped = 0;
     let polyzs = clean_polyzs(polyzs);
     for mut polygon in polyzs{
+        let style = polygon.style;
         fix_order(&mut polygon);
         let grouped_polygons = group_polygons(polygon, &mut skipped);
 
@@ -126,7 +132,8 @@ where
             }
             res.push(PolyTriangle{
                 vertices: p2vertices,
-                indices: cur_indices
+                indices: cur_indices,
+                style: style,
             });
         }
     }
@@ -165,6 +172,7 @@ fn clean_polyzs<T: Copy + PartialEq + MinMax + Default>
             outers: nouters,
             inners: ninners,
             bb: ((d,d,d),(d,d,d)),
+            style: polyz.style,
         };
         npolyz.stretch_bb();
         npolyzs.push(npolyz);

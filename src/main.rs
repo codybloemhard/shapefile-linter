@@ -250,7 +250,7 @@ fn do_things() -> Option<()>{
     }else if mode == "polygonz"{// Take shapefile and compress the polygonZ's
         let shapes = read_only_file()?;
         let polys = split(shapes, &mut logger).11;
-        let polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(PolygonZ::from).collect();
+        let polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(|p| PolygonZ::from(p,0)).collect();
         let infos = info_package(&polyzs);
         let buffer = polyzs.compress(infos, &mut logger);
         println!("Bufferized: {} ms", timer.elapsed().as_millis());
@@ -260,7 +260,7 @@ fn do_things() -> Option<()>{
     }else if mode == "triangulate"{ // take polygonz's and triangulate and compress them
         let shapes = read_only_file()?;
         let polys = split(shapes, &mut logger).11;
-        let polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(PolygonZ::from).collect();
+        let polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(|p| PolygonZ::from(p,0)).collect();
         let infos = info_package(&polyzs);
         let buffer = polyzs.triangle_compress(infos, &mut logger);
         let ok = buffer_write_file(&Path::new(&outfile), &buffer);
@@ -292,20 +292,15 @@ fn do_things() -> Option<()>{
         let mut map = HashMap::new();
         let mut styles = Vec::new();
         let mut counter = 0;
-        let mut stys = Vec::new();
         let mut polyzs = Vec::new();
         for file in infiles{
             let polys = kml_geo(&file, &mut set, &mut map, &mut styles, &mut counter, &mut logger);
-            let stpolyzs: Vec<_> = polys.into_iter().map(|(sty,poly)| (sty,PolygonZ::from(poly))).collect();
-            for (st,polyz) in stpolyzs{
-                stys.push(st);
-                polyzs.push(polyz);
-            }
+            let stpolyzs: Vec<_> = polys.into_iter().map(|(sty,poly)| PolygonZ::from(poly,sty)).collect();
+            polyzs.extend(stpolyzs);
         }
         println!("There are {} polygons!", polyzs.len());
         let infos = info_package(&polyzs);
-        let mut buffer = polyzs.triangle_compress(infos, &mut logger);
-        stys.into_buffer(&mut buffer);
+        let buffer = polyzs.triangle_compress(infos, &mut logger);
         let mut ok = buffer_write_file(&Path::new(&outfile), &buffer);
         println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
                 timer.elapsed().as_millis());

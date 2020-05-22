@@ -136,6 +136,7 @@ pub fn compress_polygonz_into<T: Bufferable + FromU64>
             inners: build(pz.inners),
             outers: build(pz.outers),
             bb: bb_to_t::<T>(pz.bb),
+            style: 0,
         });
     }
     npolygonzs
