@@ -118,6 +118,7 @@ pub fn compress_polygonz_into<T: Bufferable + FromU64>
     (polygonzs: Vec<PolygonZ<f64>>, mx: u64, my: u64, multi: u64) -> Vec<PolygonZ<T>>{
     let mut npolygonzs = Vec::new();
     for pz in polygonzs{
+        let style = pz.style;
         let build = |old: Vvec<P3<f64>>|{
             let mut col = Vec::new();
             for sub in old{
@@ -136,7 +137,7 @@ pub fn compress_polygonz_into<T: Bufferable + FromU64>
             inners: build(pz.inners),
             outers: build(pz.outers),
             bb: bb_to_t::<T>(pz.bb),
-            style: 0,
+            style,
         });
     }
     npolygonzs
