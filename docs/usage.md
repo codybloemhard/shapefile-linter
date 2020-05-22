@@ -11,7 +11,7 @@ You use it by giving it flags and arguments, like `shapefile-linter --help`
 Except for the `shapefile-linter --help` command, you always need to give the input files as the first argument.
 For example `shapefile-linter data/heightmap.shp`.
 It can be multiple files like this: `shapefile-linter data/a.shp data/b.shp`
-You can ofcourse you patterns supported by your shell, like `bash` or `zsh`.
+You can ofcourse use patterns supported by your shell, like `bash` or `zsh`.
 For example get all shapefiles from a directory: `shapefile-linter data/*.shp`.
 Or get all shapefiles that contain `al` in the name in all sub directories:
 `shapefile-linter data/*/*al*.shp`

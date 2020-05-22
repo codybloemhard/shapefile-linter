@@ -78,6 +78,7 @@ pub fn test(){
         ],
         bb: ((0.0,0.0,0.0),(0.0,0.0,0.0))
     });
+    polyzs[0].outers[0].reverse();
     let res = triangulate(polyzs);
 
     for polyt in res{
@@ -103,9 +104,9 @@ where
 {
     let mut skipped = 0;
     let mut res = Vec::new();
-    for polygon in polyzs{
-        let grouped_polygons = if let Some(gp) = group_polygons(polygon)
-        { gp } else { skipped += 1; continue; };
+    for mut polygon in polyzs{
+        fix_order(&mut polygon);
+        let grouped_polygons = group_polygons(polygon, &mut skipped);
 
         for (mut outer,inners) in grouped_polygons{
             let mut vertices = merge_inner(&mut outer, inners);
@@ -124,10 +125,45 @@ where
         }
     }
     if skipped > 0 { println!("Skipped {} groups.", skipped); }
+
     res
 }
 
-fn group_polygons<T>(polygon: PolygonZ<T>) -> Option<Vec<(Vec<P3<T>>, Vvec<P3<T>>)>>
+fn fix_order<T>(polygon: &mut PolygonZ<T>)
+where
+    T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
+    T: Into<f64>
+{
+    for outer in &mut polygon.outers{
+        if !is_clockwise(&outer){
+            outer.reverse();
+        }
+    }
+    for inner in &mut polygon.inners{
+        if is_clockwise(&inner){
+            inner.reverse();
+        }
+    }
+}
+
+fn is_clockwise<T>(ring: &Vec<P3<T>>) -> bool
+where
+    T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
+    T: Into<f64>
+{
+    let mut sum = 0.0;
+    for (i,p0) in ring.iter().enumerate(){
+        let p1 = ring[(i+1)%ring.len()];
+        let x0 = p0.0.into();
+        let y0 = p0.1.into();
+        let x1 = p1.0.into();
+        let y1 = p1.1.into();
+        sum += (x1-x0)*(y1+y0);
+    }
+    return sum > 0.0;
+}
+
+fn group_polygons<T>(polygon: PolygonZ<T>, skipped: &mut i64) -> Vec<(Vec<P3<T>>, Vvec<P3<T>>)>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
     u8: Into<T>,
@@ -164,11 +200,11 @@ where
             }
         }
 
-        if max == -1 { return None; }
+        if max == -1{ *skipped += 1;}
 
         grouped_inners[max_index].push(inner);
     }
-    Some(polygon.outers.into_iter().zip(grouped_inners).collect())
+    polygon.outers.into_iter().zip(grouped_inners).collect()
 }
 
 fn merge_inner<T>(outer: &mut Vec<P3<T>>, mut inners: Vvec<P3<T>>) -> Vec<P3<T>>

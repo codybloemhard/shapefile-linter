@@ -29,7 +29,8 @@ use triangulate::*;
 use kml::*;
 
 fn main(){
-    do_things();
+    test();
+    //do_things();
 }
 
 fn do_things() -> Option<()>{
