@@ -288,13 +288,11 @@ fn do_things() -> Option<()>{
             print_xml_tag_count(&file);
         }
     }else if mode == "geomerge"{
-        let mut set = HashSet::new();
-        let mut map = HashMap::new();
         let mut styles = Vec::new();
         let mut counter = 0;
         let mut polyzs = Vec::new();
         for file in infiles{
-            let polys = kml_geo(&file, &mut set, &mut map, &mut styles, &mut counter, &mut logger);
+            let polys = kml_geo(&file, &mut styles, &mut counter, &mut logger);
             let stpolyzs: Vec<_> = polys.into_iter().map(|(sty,poly)| PolygonZ::from(poly,sty)).collect();
             polyzs.extend(stpolyzs);
         }

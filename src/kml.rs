@@ -220,10 +220,11 @@ pub fn kml_height(path: &str) -> VvP4{
     vvp4
 }
 //parse geological kml file
-pub fn kml_geo(path: &str, colset: &mut HashSet<String>, colmap: &mut HashMap<String,usize>,
-    styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize, logger: &mut Logger) -> Vec<(usize,(VvP4,VvP4))>{
+pub fn kml_geo(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize, logger: &mut Logger) -> Vec<(usize,(VvP4,VvP4))>{
     let file = open_file!(path);
     let parser = EventReader::new(file);
+    let mut colset = HashSet::new();
+    let mut colmap = HashMap::new();
     let mut in_poly_style = false;
     let mut style_id = String::new();
     let mut in_colour = false;
