@@ -44,11 +44,11 @@ fn bb_to_t<T: FromU64>(bb: (P3<f64>,P3<f64>)) -> (P3<T>,P3<T>){
 // Ability to be convertable to a compressed buffer
 pub trait Compressable
 {
-    fn compress(self, infos: (u64,u64,u64,u64,CompTarget)) -> Buffer;
+    fn compress(self, infos: (u64,u64,u64,u64,CompTarget), logger: &mut Logger) -> Buffer;
 }
 // Ability to be transformed into triangles and than compressed into buffer
 pub trait TriangleCompressable{
-    fn triangle_compress(self, infos: (u64,u64,u64,u64,CompTarget)) -> Buffer;
+    fn triangle_compress(self, infos: (u64,u64,u64,u64,CompTarget), logger: &mut Logger) -> Buffer;
 }
 // Macro that builds a generic implementation of Compressable
 macro_rules! ImplCompressable {
@@ -56,7 +56,7 @@ macro_rules! ImplCompressable {
         impl $tname for $btype
         {
             fn $tfname
-                (mut self, (mx,my,mz,multi,target): (u64,u64,u64,u64,CompTarget)) -> Buffer{
+                (mut self, (mx,my,mz,multi,target): (u64,u64,u64,u64,CompTarget), logger: &mut Logger) -> Buffer{
                     let mut buffer = Vec::new();
                     (mx,my,mz,multi).into_buffer(&mut buffer);
                     macro_rules! TargetIntoBuffer {
@@ -67,7 +67,7 @@ macro_rules! ImplCompressable {
                             let bb = get_global_bb(&ns);
                             println!("Global Boundingbox: {:?}", bb);
                             // transform?
-                            let ns = $trans(ns);
+                            let ns = $trans(ns,logger);
                             bb.into_buffer(&mut buffer);
                             ns.into_buffer(&mut buffer);
                         };
@@ -88,7 +88,7 @@ macro_rules! ImplCompressable {
         }
     };
 }
-fn id<T>(v: T) -> T { v }
+fn id<T>(v: T, _logger: &mut Logger) -> T { v }
 // Actually implement it for the needed types
 ImplCompressable!(Compressable,compress,Vec<ShapeZ<f64>>,compress_shapez_into,id);
 ImplCompressable!(Compressable,compress,Vec<PolygonZ<f64>>,compress_polygonz_into,id);
