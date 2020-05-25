@@ -294,11 +294,11 @@ pub fn kml_geo(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize,
                 else if &nname == "innerboundaryis" { in_inner = false; }
                 else if &nname == "coordinates" { in_coordinates = false; }
                 else if &nname == "polygon" {
-                    //if &style_url == "" { panic!("bruhh"); }
-                    polygons.push((style_url,outers,inners));
-                    style_url = String::new();
+                    polygons.push((style_url.clone(),outers,inners));
                     outers = Vec::new();
                     inners = Vec::new();
+                }else if &nname == "placemark" {
+                    style_url = String::new();
                 }
             }
             Err(e) => {

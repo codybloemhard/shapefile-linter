@@ -246,3 +246,48 @@ pub fn optimize_lines<T>(mut old: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     }
     independents
 }
+
+// fn xy_to_chunk<T>((x,y): (T,T), csizex: T, csizey: T) -> (usize,usize){
+//     ((x / csizex) as usize, (y / csizey) as usize)
+// }
+//
+// fn chunkify_polygons<T>(cuts: usize, polygons: Vec<PolyTriangle<T>>, logger: &mut Logger) -> PolyTriangle<T>{
+//     let cuts_u64 = cuts;
+//     let cuts = T::from(cuts);
+//     let mut grid: Vvec<ShapeZ<T>> = vec![vec![]; (cuts_u64 * cuts_u64) as usize];
+//     let bb0x = (gbb.0).0;
+//     let bb0y = (gbb.0).1;
+//     if bb0x != T::default() || bb0y != T::default(){
+//         logger.log(Issue::NonOriginBoundingbox);
+//         return vec![];
+//     }
+//     let gwid = (gbb.1).0;
+//     let ghei = (gbb.1).1;
+//     let csizex = (gwid / cuts) + T::from(1u64);
+//     let csizey = (ghei / cuts) + T::from(1u64);
+//     for polygon in polygons{
+//         let mut localgrid = HashMap::new();
+//         for i in polygon.indices.len() % 3{
+//             let ia = polygon.indices[i];
+//             let ib = polygon.indices[i + 1];
+//             let ic = polygon.indices[i + 2];
+//             let va = polygon.vertices[ia];
+//             let vb = polygon.vertices[ib];
+//             let vc = polygon.vertices[ic];
+//             let cells = vec![
+//                 xy_to_chunk(va, csizex, csizey),
+//                 xy_to_chunk(vb, csizex, csizey),
+//                 xy_to_chunk(vc, csizex, csizey),
+//             ];
+//             cells.dedup();
+//             for (cx,cy) in cells{
+//                 let (vertices,indices) = if let Some((v,i)) = localgrid.get((cx,cy)){
+//                     (v,i)
+//                 }else{
+//                     (Vec::new(),HashMap::new())
+//                 };
+//
+//             }
+//         }
+//     }
+// }
