@@ -14,3 +14,5 @@ Cargo.lock
 **/*.info
 **/*.zip
 **/*outp
+geoboi
+styles

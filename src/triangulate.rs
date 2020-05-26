@@ -106,7 +106,7 @@ pub fn test(){
 
 pub fn triangulate<T>(polyzs: Vec<PolygonZ<T>>, logger: &mut Logger) -> Vec<PolyTriangle<T>>
 where
-    T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + Default + MinMax,
+    T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + Default + MinMax + std::fmt::Display,
     u8: Into<T>,
     T: Into<f64> + FromF64 + std::fmt::Debug
 {
@@ -216,7 +216,7 @@ where
 
 fn group_polygons<T>(polygon: PolygonZ<T>, skipped: &mut i64) -> Vec<(Vec<P3<T>>, Vvec<P3<T>>)>
 where
-    T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
+    T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + std::fmt::Display,
     u8: Into<T>,
     T: Into<f64>
 {
@@ -251,11 +251,49 @@ where
             }
         }
 
-        if max == -1{ *skipped += 1;}
+        if max == -1{ 
+            *skipped += 1;
+
+            /*for (i,outer) in polygon.outers.iter().enumerate(){
+                print_poly_matplotlib(&outer, "outer".to_owned() + &i.to_string());
+            }
+            print_poly_matplotlib(&inner, "inner".to_string());*/
+        }
 
         grouped_inners[max_index].push(inner);
     }
     polygon.outers.into_iter().zip(grouped_inners).collect()
+}
+
+fn print_poly_matplotlib<T>(poly: &Vec<P3<T>>, name: String)
+where
+    T: std::fmt::Display
+{
+    print!("{}Verts = [", name);
+    for p in poly{
+        print!("({},{}),", p.0, p.1);
+    }
+    print!("(0,0),");
+    println!("]");
+
+    print!("{}Codes = [", name);
+    for (i,p) in poly.iter().enumerate(){
+        if i == 0 {print!("Path.MOVETO,");}
+        else {print!("Path.LINETO,");}
+    }
+    print!("Path.CLOSEPOLY,");
+    println!("]");
+
+    println!("{}Path = Path({}Verts, {}Codes)", name, name, name);
+
+    println!("{}Patch = patches.PathPatch({}Path, facecolor='orange', lw=2)", name, name);
+    println!("ax.add_patch({}Patch)", name);
+
+    println!("for(x,y) in {}Verts[:-1]:", name);
+    println!("\tminx = min(x,minx)");
+    println!("\tmaxx = max(x,maxx)");
+    println!("\tminy = min(y,miny)");
+    println!("\tmaxy = max(y,maxy)");
 }
 
 fn merge_inner<T>(outer: &mut Vec<P3<T>>, mut inners: Vvec<P3<T>>) -> Vec<P3<T>>
@@ -585,7 +623,7 @@ where
 
         if y2-y1 == 0.0 {continue}
         let t = (p1 - y1) / (y2 - y1);
-        if t < 0.0 || t > 1.0 {continue}
+        if t < 0.0 || t >= 1.0 {continue}
         let x = x1 + t * (x2 - x1);
         if x<p0 {continue}
 
