@@ -10,9 +10,9 @@ use std::convert::TryFrom;
 
 #[derive(Clone)]
 pub struct PolyTriangle<T>{
-    vertices: Vec<(T,T)>,
-    indices: Vec<u16>,
-    style: usize,
+    pub vertices: Vec<(T,T)>,
+    pub indices: Vec<u16>,
+    pub style: usize,
 }
 
 impl<T: Bufferable + Clone> Bufferable for PolyTriangle<T>{
