@@ -253,11 +253,6 @@ where
 
         if max == -1{ 
             *skipped += 1;
-
-            /*for (i,outer) in polygon.outers.iter().enumerate(){
-                print_poly_matplotlib(&outer, "outer".to_owned() + &i.to_string());
-            }
-            print_poly_matplotlib(&inner, "inner".to_string());*/
         }
 
         grouped_inners[max_index].push(inner);
@@ -265,7 +260,7 @@ where
     polygon.outers.into_iter().zip(grouped_inners).collect()
 }
 
-fn print_poly_matplotlib<T>(poly: &Vec<P3<T>>, name: String)
+fn print_poly_matplotlib<T>(poly: &[P3<T>], name: String)
 where
     T: std::fmt::Display
 {
@@ -385,7 +380,7 @@ where
 
 fn make_indices<T>(vertices: &[P3<T>], logger: &mut Logger) -> Option<Vec<u16>>
 where
-    T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
+    T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + std::fmt::Display,
     T: Into<f64> + std::fmt::Debug
 {
     if vertices.len() < 3 {
@@ -434,18 +429,7 @@ where
         step+=1;
 
         if step > vertices.len(){
-            if logger.debug_panic{
-                print!("[");
-                for (x,_,_) in vertices{
-                    print!("{:?} ", x);
-                }
-                print!("],[");
-                for (_,y,_) in vertices{
-                    print!("{:?} ", y);
-                }
-                print!("]");
-                panic!("reeeee");
-            }
+            print_poly_matplotlib(&vertices, "vertices".to_string());
             logger.log(Issue::NoEarsLeft);
             return None;
         }
@@ -623,7 +607,14 @@ where
 
         if y2-y1 == 0.0 {continue}
         let t = (p1 - y1) / (y2 - y1);
-        if t < 0.0 || t >= 1.0 {continue}
+        if t < 0.0 || t > 1.0 {continue}
+
+        //if the ray exactly hits the edge of the line (t == 0 or t == 1),
+        //only count it as a hit if it's on the bottom of the line 
+        //this counters 'sawteeth' interfering with the number of intersections
+        if y2-y1 < 0.0 && t == 1.0 ||
+            y2-y1 > 0.0 && t == 0.0 {continue}
+
         let x = x1 + t * (x2 - x1);
         if x<p0 {continue}
 
