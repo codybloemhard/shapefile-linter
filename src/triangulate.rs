@@ -137,7 +137,7 @@ where
             });
         }
     }
-    if skipped > 0 { println!("Skipped {} groups.", skipped); }
+    if skipped > 0 { println!("Skipped {} inner polygons.", skipped); }
     res
 }
 
@@ -251,7 +251,7 @@ where
             }
         }
 
-        if max == -1{ 
+        if max == -1{
             *skipped += 1;
         }
 
