@@ -13,6 +13,7 @@ pub struct PolyTriangle<T>{
     vertices: Vec<(T,T)>,
     indices: Vec<u16>,
     style: usize,
+    outline: Vec<(u16,u16)>,
 }
 
 impl<T: Bufferable + Clone> Bufferable for PolyTriangle<T>{
@@ -30,10 +31,12 @@ impl<T: Bufferable + Clone> Bufferable for PolyTriangle<T>{
         let vertices = Vec::<(T,T)>::from_buffer(buf)?;
         let indices = Vec::<u16>::from_buffer(buf)?;
         let style = usize::from_buffer(buf)?;
+        let outline = Vec::<(u16,u16)>::from_buffer(buf)?;
         Some(Self{
             vertices,
             indices,
             style,
+            outline,
         })
     }
 }
@@ -101,6 +104,11 @@ pub fn test(){
             i = (i+1)%3;
         }
         println!();
+        print!("outline: ");
+        for tup in polyt.outline{
+            print!("{:?}", tup);
+        }
+        println!();
     }
 }
 
@@ -119,21 +127,25 @@ where
         let grouped_polygons = group_polygons(polygon, &mut skipped);
 
         for (mut outer,inners) in grouped_polygons{
-            let mut vertices = merge_inner(&mut outer, inners);
+            let (mut vertices, unused_outlines) = merge_inner(&mut outer, inners, logger);
             if vertices.is_empty() { continue; }
             vertices.dedup();
             if vertices[0] == vertices[vertices.len()-1]{vertices.pop();}
-            let cur_indices = if let Some(x) = make_indices(&vertices, logger)
+            let cur_indices= if let Some(x) = make_indices(&vertices, logger)
             { x } else {  continue; };
+
+            let outline = make_outline(&vertices, unused_outlines, logger);
 
             let mut p2vertices = Vec::new();
             for (x,y,_) in vertices{
                 p2vertices.push((x,y));
             }
+            
             res.push(PolyTriangle{
                 vertices: p2vertices,
                 indices: cur_indices,
                 style: style,
+                outline: outline
             });
         }
     }
@@ -291,7 +303,7 @@ where
     println!("\tmaxy = max(y,maxy)");
 }
 
-fn merge_inner<T>(outer: &mut Vec<P3<T>>, mut inners: Vvec<P3<T>>) -> Vec<P3<T>>
+fn merge_inner<T>(outer: &mut Vec<P3<T>>, mut inners: Vvec<P3<T>>, logger: &mut Logger) -> (Vec<P3<T>>, Vec<(P3<T>,P3<T>)>)
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + Default + MinMax,
     T: Into<f64> + FromF64
@@ -299,6 +311,8 @@ where
     //merge inner ring with highest x coordinate first (this one can defneitely to see the outer ring)
     inners.sort_by(|a, b| rightmost(a).partial_cmp(&rightmost(b)).unwrap_or(Ordering::Equal));
     inners.reverse();
+
+    let mut unused_outlines = Vec::new();
 
      //merge rings one by one
     for inner in inners{
@@ -341,6 +355,9 @@ where
             intersect = (T::from(x),T::from(y3),z);
         }
 
+        unused_outlines.push((intersect, rightmost));
+        unused_outlines.push((rightmost, intersect));
+
         let mut new_vertices= Vec::new();
         for (i,point) in outer.iter().enumerate(){
             if i == intersect_index{
@@ -362,7 +379,44 @@ where
 
         *outer = new_vertices.clone();
     }
-    outer.to_vec()
+    (outer.to_vec(),unused_outlines)
+}
+
+fn make_outline<T>(vertices: &Vec<P3<T>>, unused_outlines: Vec<(P3<T>,P3<T>)>, logger: &mut Logger) -> Vec<(u16,u16)>
+where
+    T: std::cmp::PartialEq + Copy
+{
+    let mut ol = Vec::new();
+    let mut start: u16 = 0;
+    for i in 0..vertices.len(){
+        let next_i = (i+1)%vertices.len();
+        if unused_outlines.contains(&(vertices[i],vertices[next_i])){
+            let x = u16::try_from(i);
+            let y = u16::try_from(next_i);
+            if x.is_err() || y.is_err(){
+                logger.log(Issue::OutOfIndicesBound);
+            }
+            let xu = x.unwrap();
+            let yu = y.unwrap();
+            if(xu > start){
+                
+                ol.push((start, xu));
+            }
+            
+            start = yu;
+        }
+        else if i+1 == vertices.len(){
+            let x = u16::try_from(i);
+            let y = u16::try_from(next_i);
+            if x.is_err() || y.is_err(){
+                logger.log(Issue::OutOfIndicesBound);
+            }
+            if(x.unwrap() > start){
+                ol.push((start, y.unwrap()));
+            }
+        }
+    }
+    return ol;
 }
 
 fn rightmost<T>(inner: &[P3<T>]) -> T

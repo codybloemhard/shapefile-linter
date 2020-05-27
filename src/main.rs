@@ -10,6 +10,8 @@ use std::path::Path;
 use std::time::Instant;
 use std::collections::{HashMap,HashSet};
 
+use crate::triangulate::test;
+
 pub mod data;
 pub mod info;
 pub mod compress;
@@ -28,7 +30,8 @@ use chunkify::*;
 use kml::*;
 
 fn main(){
-    do_things();
+    test();
+    //do_things();
 }
 
 fn do_things() -> Option<()>{
