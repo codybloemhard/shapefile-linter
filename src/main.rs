@@ -297,7 +297,8 @@ fn do_things() -> Option<()>{
             polyzs.extend(stpolyzs);
         }
         let infos = info_package(&polyzs);
-        let polyzs = polyzs.into_iter().map(|p| int_cast(p)).collect::<Vec<_>>();
+        let mut polyzs = polyzs.into_iter().map(|p| int_cast(p)).collect::<Vec<_>>();
+        polyzs.iter_mut().for_each(|p| p.stretch_bb());
         println!("There are {} polygons!", polyzs.len());
         let gbb = get_global_bb(&polyzs);
         let triangles = crate::triangulate::triangulate(polyzs, &mut logger);
@@ -307,7 +308,7 @@ fn do_things() -> Option<()>{
             x.into_buffer(&mut buffer);
             y.into_buffer(&mut buffer);
             let ok = buffer_write_file(&Path::new(&format!("{}-{}.polychunk", x, y)), &buffer);
-            print!("Writing chunk ({},{}) ok?: {}, {} ms, ", x, y, ok, timer.elapsed().as_millis());
+            println!("Writing chunk ({},{}) ok?: {}, {} ms, ", x, y, ok, timer.elapsed().as_millis());
         }
         let mut stylebuffer = Vec::new();
         styles.into_buffer(&mut stylebuffer);

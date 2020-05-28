@@ -267,23 +267,27 @@ pub fn chunkify_polytriangles<T>(cuts: u8, gbb: BB<T>, polygons: Vec<PolyTriangl
         T: FromU64 +  BoundingType + MinMax,
         T: Div<Output = T> + Add<Output = T> + Mul<Output = T>,
         T: Into<u64>,
+        T: std::fmt::Display,
 {
     let cuts_usize = cuts as usize;
     let cuts = T::from(cuts.try_into().unwrap());
     let mut grid: Vvec<PolyTriangle<T>> = vec![vec![]; cuts_usize * cuts_usize];
     let bb0x = (gbb.0).0;
     let bb0y = (gbb.0).1;
-    if bb0x != T::default() || bb0y != T::default(){
-        logger.log(Issue::NonOriginBoundingbox);
-        return vec![];
-    }
+    // Why did we enforce this again?
+    // if bb0x != T::default() || bb0y != T::default(){
+    //     logger.log(Issue::NonOriginBoundingbox);
+    //     return vec![];
+    // }
     let gwid = (gbb.1).0;
     let ghei = (gbb.1).1;
+    println!("{} {}", gwid, ghei);
     let csizex = (gwid / cuts) + T::from(1u64);
     let csizey = (ghei / cuts) + T::from(1u64);
+    println!("{} {}", csizex, csizey);
     for polygon in polygons{
         let mut localgrid = HashMap::new();
-        for i in 0..polygon.indices.len() % 3{
+        for i in 0..polygon.indices.len() / 3{
             let ia = polygon.indices[i];
             let ib = polygon.indices[i + 1];
             let ic = polygon.indices[i + 2];
