@@ -13,6 +13,7 @@ pub struct PolyTriangle<T>{
     pub vertices: Vec<(T,T)>,
     pub indices: Vec<u16>,
     pub style: usize,
+    pub bb: BB<T>,
 }
 
 impl<T: Bufferable + Clone> Bufferable for PolyTriangle<T>{
@@ -20,6 +21,7 @@ impl<T: Bufferable + Clone> Bufferable for PolyTriangle<T>{
         self.vertices.into_buffer(buf);
         self.indices.into_buffer(buf);
         self.style.into_buffer(buf);
+        self.bb.into_buffer(buf);
     }
 
     fn copy_into_buffer(&self, buf: &mut Buffer){
@@ -30,10 +32,12 @@ impl<T: Bufferable + Clone> Bufferable for PolyTriangle<T>{
         let vertices = Vec::<(T,T)>::from_buffer(buf)?;
         let indices = Vec::<u16>::from_buffer(buf)?;
         let style = usize::from_buffer(buf)?;
+        let bb = BB::<T>::from_buffer(buf)?;
         Some(Self{
             vertices,
             indices,
             style,
+            bb,
         })
     }
 }
@@ -115,6 +119,7 @@ where
     let polyzs = clean_polyzs(polyzs);
     for mut polygon in polyzs{
         let style = polygon.style;
+        let bb = polygon.bb;
         fix_order(&mut polygon);
         let grouped_polygons = group_polygons(polygon, &mut skipped);
 
@@ -134,6 +139,7 @@ where
                 vertices: p2vertices,
                 indices: cur_indices,
                 style: style,
+                bb: bb,
             });
         }
     }
@@ -429,7 +435,7 @@ where
         step+=1;
 
         if step > vertices.len(){
-            print_poly_matplotlib(&vertices, "vertices".to_string());
+            if logger.debug_print { print_poly_matplotlib(&vertices, "vertices".to_string()); }
             logger.log(Issue::NoEarsLeft);
             return None;
         }
@@ -610,7 +616,7 @@ where
         if t < 0.0 || t > 1.0 {continue}
 
         //if the ray exactly hits the edge of the line (t == 0 or t == 1),
-        //only count it as a hit if it's on the bottom of the line 
+        //only count it as a hit if it's on the bottom of the line
         //this counters 'sawteeth' interfering with the number of intersections
         if y2-y1 < 0.0 && t == 1.0 ||
             y2-y1 > 0.0 && t == 0.0 {continue}

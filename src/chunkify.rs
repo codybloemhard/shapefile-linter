@@ -253,22 +253,22 @@ pub fn optimize_lines<T>(mut old: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
 fn xy_to_chunk<T>((x,y): (T,T), csizex: T, csizey: T) -> (usize,usize)
     where
         T: Div<Output = T>,
-        usize: From<T>,
+        T: Into<u64>,
 {
-    (usize::from(x / csizex), usize::from(y / csizey))
+    ((x / csizex).into() as usize, (y / csizey).into() as usize)
 }
 
 pub type ChunkPoly<T> = (u64,u64,Vec<PolyTriangle<T>>);
 pub type ChunksPoly<T> = Vec<ChunkPoly<T>>;
 
-fn chunkify_polygons<T>(cuts: usize, gbb: BB<T>, polygons: Vec<PolyTriangle<T>>, logger: &mut Logger) -> ChunksPoly<T>
+pub fn chunkify_polytriangles<T>(cuts: u8, gbb: BB<T>, polygons: Vec<PolyTriangle<T>>, logger: &mut Logger) -> ChunksPoly<T>
     where
-        T: Clone + Copy + Default + PartialEq + PartialOrd + Into<usize> + Eq + std::hash::Hash,
+        T: Clone + Copy + Default + PartialEq + PartialOrd + Eq + std::hash::Hash,
         T: FromU64 +  BoundingType + MinMax,
         T: Div<Output = T> + Add<Output = T> + Mul<Output = T>,
-        usize: From <T>,
+        T: Into<u64>,
 {
-    let cuts_usize = cuts;
+    let cuts_usize = cuts as usize;
     let cuts = T::from(cuts.try_into().unwrap());
     let mut grid: Vvec<PolyTriangle<T>> = vec![vec![]; cuts_usize * cuts_usize];
     let bb0x = (gbb.0).0;
@@ -319,11 +319,14 @@ fn chunkify_polygons<T>(cuts: usize, gbb: BB<T>, polygons: Vec<PolyTriangle<T>>,
             }
         }
         for ((cx,cy),(vertices,indices,_)) in localgrid{
-            grid[cy * cuts_usize + cx].push(PolyTriangle{
+            let mut pt = PolyTriangle{
                 vertices,
                 indices,
                 style: polygon.style,
-            });
+                bb: T::start_box(),
+            };
+            pt.stretch_bb();
+            grid[cy * cuts_usize + cx].push(pt);
         }
     }
     let cuts_u64 = cuts_usize as u64;

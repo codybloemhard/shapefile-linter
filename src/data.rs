@@ -4,6 +4,7 @@ use shapefile::*;
 use shapefile::record::polygon::GenericPolygon;
 use shapefile::record::polyline::GenericPolyline;
 use crate::logger::*;
+use crate::triangulate::PolyTriangle;
 
 pub type P2<T> = (T,T);
 pub type P3<T> = (T,T,T);
@@ -177,6 +178,7 @@ macro_rules! ImplStretchableBB{
 // Implement for collections
 ImplStretchableBB!(ShapeZ);
 ImplStretchableBB!(PolygonZ);
+ImplStretchableBB!(PolyTriangle);
 // When a shape can update it's own boundingbox, to be consistent with it's points afterwards
 pub trait UpdateableBB{
     fn update_bb(&mut self);
@@ -195,6 +197,10 @@ impl<T> UpdateableBB for ShapeZ<T>
 }
 // TODO?
 impl<T> UpdateableBB for PolygonZ<T>
+    where
+    T: BoundingType + MinMax + Copy,
+{ fn update_bb(&mut self){ /* noop */ } }
+impl<T> UpdateableBB for PolyTriangle<T>
     where
     T: BoundingType + MinMax + Copy,
 { fn update_bb(&mut self){ /* noop */ } }
@@ -346,6 +352,17 @@ impl<T: Default + Copy> PolygonZ<T>{
         }
     }
 }
+pub fn int_cast(pzf64: PolygonZ<f64>) -> PolygonZ::<u32>
+{
+    let cast = |(x,y,z)| (x as u32, y as u32, z as u32);
+    let ((a,b,c),(d,e,f)) = pzf64.bb;
+    PolygonZ::<u32>{
+        inners: pzf64.inners.into_iter().map(|v| v.into_iter().map(|x| cast(x)).collect::<Vec<_>>()).collect::<Vec<_>>(),
+        outers: pzf64.outers.into_iter().map(|v| v.into_iter().map(|x| cast(x)).collect::<Vec<_>>()).collect::<Vec<_>>(),
+        bb: ((a as u32, b as u32, c as u32),(d as u32, e as u32, f as u32)),
+        style: pzf64.style,
+    }
+}
 // Next 3 implementations are trivial
 impl<T> CustomShape for PolygonZ<T>{
     fn points_len(&self) -> usize{
@@ -471,6 +488,47 @@ impl<'a, T> IntoIterator for &'a PolygonZ<T>{
             current: 0,
             outer: true,
             index: 0,
+            poly: self,
+        }
+    }
+}
+// Again we need a state to iterate over the collection
+pub struct PolyTriangleIter<'a,T>{
+    pub current: usize,
+    pub poly: &'a PolyTriangle<T>,
+}
+impl<T> CustomShape for PolyTriangle<T>{
+    fn points_len(&self) -> usize{
+        self.vertices.len()
+    }
+}
+impl<T> HasBB<T> for PolyTriangle<T>{
+    fn bounding_box(&self) -> &BB<T>{
+        &self.bb
+    }
+
+    fn set_bounding_box(&mut self, bb: BB<T>){
+        self.bb = bb
+    }
+}
+impl<'a, T> Iterator for PolyTriangleIter<'a, T>{
+    type Item = &'a P2<T>;
+    fn next(&mut self) -> Option<Self::Item>{
+        if self.current >= self.poly.vertices.len(){
+            return Option::None;
+        }
+        let i = self.current;
+        self.current += 1;
+        Option::Some(&self.poly.vertices[i])
+    }
+}
+impl<'a, T> IntoIterator for &'a PolyTriangle<T>{
+    type Item = &'a P2<T>;
+    type IntoIter = PolyTriangleIter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter{
+        PolyTriangleIter{
+            current: 0,
             poly: self,
         }
     }

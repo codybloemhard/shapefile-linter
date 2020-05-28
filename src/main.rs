@@ -296,17 +296,23 @@ fn do_things() -> Option<()>{
             let stpolyzs: Vec<_> = polys.into_iter().map(|(sty,poly)| PolygonZ::from(poly,sty)).collect();
             polyzs.extend(stpolyzs);
         }
-        println!("There are {} polygons!", polyzs.len());
         let infos = info_package(&polyzs);
-        let buffer = polyzs.triangle_compress(infos, &mut logger);
-        let mut ok = buffer_write_file(&Path::new(&outfile), &buffer);
-        println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
-                timer.elapsed().as_millis());
+        let polyzs = polyzs.into_iter().map(|p| int_cast(p)).collect::<Vec<_>>();
+        println!("There are {} polygons!", polyzs.len());
+        let gbb = get_global_bb(&polyzs);
+        let triangles = crate::triangulate::triangulate(polyzs, &mut logger);
+        let chunks = crate::chunkify::chunkify_polytriangles(8, gbb, triangles, &mut logger);
+        for (x,y,chunk) in chunks{
+            let mut buffer = chunk.compress(infos, &mut logger);
+            x.into_buffer(&mut buffer);
+            y.into_buffer(&mut buffer);
+            let ok = buffer_write_file(&Path::new(&format!("{}-{}.polychunk", x, y)), &buffer);
+            print!("Writing chunk ({},{}) ok?: {}, {} ms, ", x, y, ok, timer.elapsed().as_millis());
+        }
         let mut stylebuffer = Vec::new();
         styles.into_buffer(&mut stylebuffer);
-        ok = buffer_write_file(&Path::new("styles"), &stylebuffer);
-        println!("Writing file \"{}\", went ok?: {}, {} ms", "styles", ok,
-                timer.elapsed().as_millis());
+        let ok = buffer_write_file(&Path::new("styles"), &stylebuffer);
+        println!("Writing file \"{}\", went ok?: {}, {} ms", "styles", ok, timer.elapsed().as_millis());
     }else if mode == "check-tag-child"{
         for file in infiles{
             println!("{}", check_tag_child(&file,&tag0,&tag1));
