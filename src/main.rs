@@ -8,7 +8,7 @@ extern crate hex;
 use bin_buffer::*;
 use std::path::Path;
 use std::time::Instant;
-use std::collections::{HashMap,HashSet};
+use std::collections::{HashMap};
 
 pub mod data;
 pub mod info;
@@ -81,14 +81,16 @@ fn do_things() -> Option<()>{
         }
         read_single_file(infiles[0].clone())
     };
+    let write_buffer = |filename: &str, buffer: &Buffer, timer: &std::time::Instant|{
+        let ok = buffer_write_file(&Path::new(filename), buffer);
+        println!("Writing file \"{}\", went ok?: {}, {} ms", "styles", ok, timer.elapsed().as_millis());
+    };
     // Compress and bufferize and write collection.
     macro_rules! compress_and_write{
         ($col:expr) =>{
             let infos = info_package(&$col);
             let buffer = $col.compress(infos, &mut logger);
-            let ok = buffer_write_file(&Path::new(&outfile), &buffer);
-            println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
-                     timer.elapsed().as_millis());
+            write_buffer(&outfile, &buffer, &timer);
         }
     }
     // read in heightlines. depending on the choice the user made, shapefile or kml.
@@ -231,8 +233,8 @@ fn do_things() -> Option<()>{
                     picked
                 };
                 finalv.into_buffer(&mut buffer);
-                let ok = buffer_write_file(&Path::new(&format!("{}-{}-{}.chunk", i, x, y)), &buffer);
-                print!("Writing chunk ({},{},{}) ok?: {}, {} ms, ", i, x, y, ok, timer.elapsed().as_millis());
+                let filename = &format!("{}-{}-{}.hlinechunk", i, x, y);
+                write_buffer(filename, &buffer, &timer);
                 println!("l0: {} l1: {} l2: {} s0: {} s1: {}", points0, points1, points2, lines0, lines1);
             }
             cuts.into_buffer(&mut info_buffer);
@@ -254,18 +256,14 @@ fn do_things() -> Option<()>{
         let infos = info_package(&polyzs);
         let buffer = polyzs.compress(infos, &mut logger);
         println!("Bufferized: {} ms", timer.elapsed().as_millis());
-        let ok = buffer_write_file(&Path::new(&outfile), &buffer);
-        println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
-                 timer.elapsed().as_millis());
+        write_buffer(&outfile, &buffer, &timer);
     }else if mode == "triangulate"{ // take polygonz's and triangulate and compress them
         let shapes = read_only_file()?;
         let polys = split(shapes, &mut logger).11;
         let polyzs: Vec<PolygonZ<f64>> = polys.into_iter().map(|p| PolygonZ::from(p,0)).collect();
         let infos = info_package(&polyzs);
         let buffer = polyzs.triangle_compress(infos, &mut logger);
-        let ok = buffer_write_file(&Path::new(&outfile), &buffer);
-        println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
-                 timer.elapsed().as_millis());
+        write_buffer(&outfile, &buffer, &timer);
     }else if mode == "height"{// Compress shapefile, assuming it consist of height lines.
         let path = get_only_path()?;
         let plinezs = get_plinezs!(path);
@@ -274,9 +272,7 @@ fn do_things() -> Option<()>{
         let infos = info_package(&shapezs);
         let buffer = shapezs.compress(infos, &mut logger);
         println!("Bufferized: {} ms", timer.elapsed().as_millis());
-        let ok = buffer_write_file(&Path::new(&outfile), &buffer);
-        println!("Writing file \"{}\", went ok?: {}, {} ms", outfile, ok,
-                 timer.elapsed().as_millis());
+        write_buffer(&outfile, &buffer, &timer);
     }else if mode == "xmltree"{// print out the xml open tags in indented tree form.
         for file in infiles{
             println!("\t File: {}", file);
@@ -301,19 +297,21 @@ fn do_things() -> Option<()>{
         polyzs.iter_mut().for_each(|p| p.stretch_bb());
         println!("There are {} polygons!", polyzs.len());
         let gbb = get_global_bb(&polyzs);
+        let cuts = 8u8;
         let triangles = crate::triangulate::triangulate(polyzs, &mut logger);
-        let chunks = crate::chunkify::chunkify_polytriangles(8, gbb, triangles, &mut logger);
+        let chunks = crate::chunkify::chunkify_polytriangles(cuts, gbb, triangles);
         for (x,y,chunk) in chunks{
-            let mut buffer = chunk.compress(infos, &mut logger);
-            x.into_buffer(&mut buffer);
-            y.into_buffer(&mut buffer);
-            let ok = buffer_write_file(&Path::new(&format!("{}-{}.polychunk", x, y)), &buffer);
-            println!("Writing chunk ({},{}) ok?: {}, {} ms, ", x, y, ok, timer.elapsed().as_millis());
+            let buffer = chunk.compress(infos, &mut logger);
+            let filename = &format!("{}-{}.polychunk", x, y);
+            write_buffer(filename, &buffer, &timer);
         }
         let mut stylebuffer = Vec::new();
         styles.into_buffer(&mut stylebuffer);
-        let ok = buffer_write_file(&Path::new("styles"), &stylebuffer);
-        println!("Writing file \"{}\", went ok?: {}, {} ms", "styles", ok, timer.elapsed().as_millis());
+        write_buffer("styles", &stylebuffer, &timer);
+        let mut infobuffer = Vec::new();
+        gbb.into_buffer(&mut infobuffer);
+        cuts.into_buffer(&mut infobuffer);
+        write_buffer("chunks.polyinfo", &infobuffer, &timer);
     }else if mode == "check-tag-child"{
         for file in infiles{
             println!("{}", check_tag_child(&file,&tag0,&tag1));

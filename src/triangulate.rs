@@ -278,7 +278,7 @@ where
     println!("]");
 
     print!("{}Codes = [", name);
-    for (i,p) in poly.iter().enumerate(){
+    for (i,_) in poly.iter().enumerate(){
         if i == 0 {print!("Path.MOVETO,");}
         else {print!("Path.LINETO,");}
     }

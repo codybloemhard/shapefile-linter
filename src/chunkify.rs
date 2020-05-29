@@ -261,7 +261,7 @@ fn xy_to_chunk<T>((x,y): (T,T), (csizex,csizey,offx,offy): (T,T,T,T)) -> (usize,
 pub type ChunkPoly<T> = (u64,u64,Vec<PolyTriangle<T>>);
 pub type ChunksPoly<T> = Vec<ChunkPoly<T>>;
 
-pub fn chunkify_polytriangles<T>(cuts: u8, gbb: BB<T>, polygons: Vec<PolyTriangle<T>>, logger: &mut Logger) -> ChunksPoly<T>
+pub fn chunkify_polytriangles<T>(cuts: u8, gbb: BB<T>, polygons: Vec<PolyTriangle<T>>) -> ChunksPoly<T>
     where
         T: Clone + Copy + Default + PartialEq + PartialOrd + Eq + std::hash::Hash,
         T: FromU64 +  BoundingType + MinMax,
@@ -281,9 +281,9 @@ pub fn chunkify_polytriangles<T>(cuts: u8, gbb: BB<T>, polygons: Vec<PolyTriangl
     for polygon in polygons{
         let mut localgrid = HashMap::new();
         for i in 0..polygon.indices.len() / 3{
-            let ia = polygon.indices[i];
-            let ib = polygon.indices[i + 1];
-            let ic = polygon.indices[i + 2];
+            let ia = polygon.indices[i * 3];
+            let ib = polygon.indices[i * 3 + 1];
+            let ic = polygon.indices[i * 3 + 2];
             let va = polygon.vertices[ia as usize];
             let vb = polygon.vertices[ib as usize];
             let vc = polygon.vertices[ic as usize];
