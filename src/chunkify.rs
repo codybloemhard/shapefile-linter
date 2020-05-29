@@ -2,7 +2,7 @@ use crate::data::{ShapeZ, Vvec,BB,MinMax,HasBB,CustomShape,BoundingType,Stretcha
 use crate::logger::*;
 use crate::compress::FromU64;
 use crate::triangulate::PolyTriangle;
-use std::ops::{Div,Add,Mul};
+use std::ops::{Div,Add,Mul,Sub};
 use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::convert::TryInto;
@@ -250,12 +250,12 @@ pub fn optimize_lines<T>(mut old: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     independents
 }
 
-fn xy_to_chunk<T>((x,y): (T,T), csizex: T, csizey: T) -> (usize,usize)
+fn xy_to_chunk<T>((x,y): (T,T), (csizex,csizey,offx,offy): (T,T,T,T)) -> (usize,usize)
     where
-        T: Div<Output = T>,
+        T: Div<Output = T> + Sub<Output = T>,
         T: Into<u64>,
 {
-    ((x / csizex).into() as usize, (y / csizey).into() as usize)
+    (((x - offx) / csizex).into() as usize, ((y - offy) / csizey).into() as usize)
 }
 
 pub type ChunkPoly<T> = (u64,u64,Vec<PolyTriangle<T>>);
@@ -265,26 +265,19 @@ pub fn chunkify_polytriangles<T>(cuts: u8, gbb: BB<T>, polygons: Vec<PolyTriangl
     where
         T: Clone + Copy + Default + PartialEq + PartialOrd + Eq + std::hash::Hash,
         T: FromU64 +  BoundingType + MinMax,
-        T: Div<Output = T> + Add<Output = T> + Mul<Output = T>,
+        T: Div<Output = T> + Add<Output = T> + Mul<Output = T> + Sub<Output = T>,
         T: Into<u64>,
-        T: std::fmt::Display,
+        T: std::fmt::Display + std::fmt::Debug,
 {
     let cuts_usize = cuts as usize;
     let cuts = T::from(cuts.try_into().unwrap());
     let mut grid: Vvec<PolyTriangle<T>> = vec![vec![]; cuts_usize * cuts_usize];
-    let bb0x = (gbb.0).0;
-    let bb0y = (gbb.0).1;
-    // Why did we enforce this again?
-    // if bb0x != T::default() || bb0y != T::default(){
-    //     logger.log(Issue::NonOriginBoundingbox);
-    //     return vec![];
-    // }
-    let gwid = (gbb.1).0;
-    let ghei = (gbb.1).1;
-    println!("{} {}", gwid, ghei);
+    let gwid = (gbb.1).0 - (gbb.0).0;
+    let ghei = (gbb.1).1 - (gbb.0).1;
     let csizex = (gwid / cuts) + T::from(1u64);
     let csizey = (ghei / cuts) + T::from(1u64);
-    println!("{} {}", csizex, csizey);
+    let cinf = (csizex,csizey,(gbb.0).0,(gbb.0).1);
+    println!("{:?} {} {}", gbb, csizex, csizey);
     for polygon in polygons{
         let mut localgrid = HashMap::new();
         for i in 0..polygon.indices.len() / 3{
@@ -295,9 +288,9 @@ pub fn chunkify_polytriangles<T>(cuts: u8, gbb: BB<T>, polygons: Vec<PolyTriangl
             let vb = polygon.vertices[ib as usize];
             let vc = polygon.vertices[ic as usize];
             let mut cells = vec![
-                xy_to_chunk(va, csizex, csizey),
-                xy_to_chunk(vb, csizex, csizey),
-                xy_to_chunk(vc, csizex, csizey),
+                xy_to_chunk(va, cinf),
+                xy_to_chunk(vb, cinf),
+                xy_to_chunk(vc, cinf),
             ];
             cells.dedup();
             for (cx,cy) in cells{
@@ -334,7 +327,7 @@ pub fn chunkify_polytriangles<T>(cuts: u8, gbb: BB<T>, polygons: Vec<PolyTriangl
         }
     }
     let cuts_u64 = cuts_usize as u64;
-    let mut chunks = Vec::new(); // just assign chunk numbers
+    let mut chunks = Vec::new();
     for (i,vec) in grid.into_iter().enumerate(){
         let i = i as u64;
         let x = i % cuts_u64;

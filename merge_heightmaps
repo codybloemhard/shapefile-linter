@@ -1,1 +1,1 @@
-cargo run ~/temp/topomaps/*/*al*.shp --mode mergeheight
+cargo run ~/temp/topomaps/*/*al*.shp --mode mergeheight --ft shape

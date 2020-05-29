@@ -330,9 +330,8 @@ pub struct PolygonZ<T>{
 }
 // Just a function that we use to build this struct from the raw unpacked data
 // we get from the shapfile
-impl<T: Default + Copy> PolygonZ<T>{
+impl<T: BoundingType + Copy> PolygonZ<T>{
     pub fn from(raw: Poly<P4<T>>, style: usize) -> Self{
-        let d = T::default();
         fn crunch<T>(raw: Vvec<P4<T>>) -> Vvec<P3<T>>{
             let mut col = Vec::new();
             for outer in raw{
@@ -347,7 +346,7 @@ impl<T: Default + Copy> PolygonZ<T>{
         Self{
             outers: crunch(raw.0),
             inners: crunch(raw.1),
-            bb: ((d,d,d),(d,d,d)),
+            bb: T::start_box(),
             style,
         }
     }
