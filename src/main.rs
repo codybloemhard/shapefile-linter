@@ -292,7 +292,6 @@ fn do_things() -> Option<()>{
             let stpolyzs: Vec<_> = polys.into_iter().map(|(sty,poly)| PolygonZ::from(poly,sty)).collect();
             polyzs.extend(stpolyzs);
         }
-        let infos = info_package(&polyzs);
         let mut polyzs = polyzs.into_iter().map(|p| int_cast(p)).collect::<Vec<_>>();
         polyzs.iter_mut().for_each(|p| p.stretch_bb());
         println!("There are {} polygons!", polyzs.len());
@@ -301,6 +300,7 @@ fn do_things() -> Option<()>{
         let triangles = crate::triangulate::triangulate(polyzs, &mut logger);
         let chunks = crate::chunkify::chunkify_polytriangles(cuts, gbb, triangles);
         for (x,y,chunk) in chunks{
+            let infos = info_package(&chunk);
             let buffer = chunk.compress(infos, &mut logger);
             let filename = &format!("{}-{}.polychunk", x, y);
             write_buffer(filename, &buffer, &timer);

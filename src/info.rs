@@ -2,13 +2,27 @@ use std::collections::HashMap;
 use crate::logger::*;
 use super::data::*;
 use shapefile::*;
+pub trait Ass<T>{
+    fn ass(self) -> T;
+}
+impl Ass<u64> for u32{
+    fn ass(self) -> u64{
+        self as u64
+    }
+}
+impl Ass<u64> for f64{
+    fn ass(self) -> u64{
+        self as u64
+    }
+}
 // ranges: (offset x, range x, offset y, range y, offset z, range z)
 pub type Ranges = (u64,u64,u64,u64,u64,u64);
 // calculate info needed to compress
-pub fn info_package<'a,S: CustomShape>(shapes: &'a [S]) -> (u64,u64,u64,u64,CompTarget)
+pub fn info_package<'a,S: CustomShape,T>(shapes: &'a [S]) -> (u64,u64,u64,u64,CompTarget)
     where
         for<'b> &'b S: IntoIterator,
-        <&'a S as IntoIterator>::Item: HasXyz<f64> + PartialEq,
+        <&'a S as IntoIterator>::Item: HasXyz<T> + PartialEq,
+        T: Ass<u64>,
 {
     let ranges = compress_doubles_stats(shapes);
     let (mx,rx,my,ry,mz,rz) = ranges;
@@ -24,10 +38,11 @@ pub fn info_package<'a,S: CustomShape>(shapes: &'a [S]) -> (u64,u64,u64,u64,Comp
 }
 // calculate the ranges and offsets from the values of the collection
 // using this magic: https://doc.rust-lang.org/nomicon/hrtb.html
-pub fn compress_doubles_stats<'a,S>(shapes: &'a [S]) -> Ranges
+pub fn compress_doubles_stats<'a,S,T>(shapes: &'a [S]) -> Ranges
     where
         for<'b> &'b S: IntoIterator,
-        <&'a S as IntoIterator>::Item: HasXyz<f64>,
+        <&'a S as IntoIterator>::Item: HasXyz<T>,
+        T: Ass<u64>,
 {
     let mut xmin = std::u64::MAX;
     let mut xmax = std::u64::MIN;
@@ -38,9 +53,9 @@ pub fn compress_doubles_stats<'a,S>(shapes: &'a [S]) -> Ranges
     for shape in shapes{
         for p in shape{
             let xyz = p.xyz();
-            let x = xyz.0 as u64;
-            let y = xyz.1 as u64;
-            let z = xyz.2 as u64;
+            let x = (xyz.0).ass();
+            let y = (xyz.1).ass();
+            let z = (xyz.2).ass();
             xmax = xmax.max(x);
             ymax = ymax.max(y);
             zmax = zmax.max(z);
@@ -52,11 +67,12 @@ pub fn compress_doubles_stats<'a,S>(shapes: &'a [S]) -> Ranges
     (xmin, xmax - xmin, ymin, ymax - ymin, zmin, zmax - zmin)
 }
 // calculate the ranges and offsets of individual shapes
-pub fn compress_shapes_stats<'a,S>(shapes: &'a [S]) -> (u64,u64,u64)
+pub fn compress_shapes_stats<'a,S,T>(shapes: &'a [S]) -> (u64,u64,u64)
     where
         S: CustomShape,
         for<'b> &'b S: IntoIterator,
-        <&'a S as IntoIterator>::Item: HasXyz<f64>,
+        <&'a S as IntoIterator>::Item: HasXyz<T>,
+        T: Ass<u64>,
 {
     let mut rangex = std::u64::MIN;
     let mut rangey = std::u64::MIN;
@@ -73,9 +89,9 @@ pub fn compress_shapes_stats<'a,S>(shapes: &'a [S]) -> (u64,u64,u64)
         let mut zmax = std::u64::MIN;
         for p in shape{
             let xyz = p.xyz();
-            let x = xyz.0 as u64;
-            let y = xyz.1 as u64;
-            let z = xyz.2 as u64;
+            let x = (xyz.0).ass();
+            let y = (xyz.1).ass();
+            let z = (xyz.2).ass();
             xmax = xmax.max(x);
             ymax = ymax.max(y);
             zmax = zmax.max(z);
