@@ -73,23 +73,6 @@ macro_rules! ImplMinMax {
 }
 // Actual implementations
 ImplMinMax!(f64);ImplMinMax!(f32);ImplMinMax!(u64);ImplMinMax!(u32);ImplMinMax!(u16);ImplMinMax!(u8);
-// Be able to subtract with same type
-// Normal subtract can be for two different types
-pub trait TTSub{
-    fn sub(self, b: Self) -> Self;
-}
-// Again our friend the macro will do the work for us
-macro_rules! ImplTTSub{
-    ($ttype:ident) => {
-        impl TTSub for $ttype{
-            fn sub(self, b: Self) -> Self{
-                self - b
-            }
-        }
-    }
-}
-// Actual implementations
-ImplTTSub!(f64);ImplTTSub!(f32);ImplTTSub!(u64);ImplTTSub!(u32);ImplTTSub!(u16);ImplTTSub!(u8);
 // These types can stretch a bounding box
 pub trait Bounded<T>{
     fn stretch_bound(self, bb: &mut BB<T>);
