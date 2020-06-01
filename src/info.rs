@@ -2,19 +2,7 @@ use std::collections::HashMap;
 use crate::logger::*;
 use super::data::*;
 use shapefile::*;
-pub trait Ass<T>{
-    fn ass(self) -> T;
-}
-impl Ass<u64> for u32{
-    fn ass(self) -> u64{
-        self as u64
-    }
-}
-impl Ass<u64> for f64{
-    fn ass(self) -> u64{
-        self as u64
-    }
-}
+use ass::*;
 // ranges: (offset x, range x, offset y, range y, offset z, range z)
 pub type Ranges = (u64,u64,u64,u64,u64,u64);
 // calculate info needed to compress

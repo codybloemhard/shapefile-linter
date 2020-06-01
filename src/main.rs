@@ -4,6 +4,7 @@ extern crate bin_buffer;
 extern crate dlv_list;
 extern crate xml;
 extern crate hex;
+extern crate ass;
 
 use bin_buffer::*;
 use std::path::Path;

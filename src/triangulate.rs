@@ -5,8 +5,8 @@ use crate::logger::*;
 use std::cmp::Ordering;
 use std::ops::{Add,Sub,Div,Mul};
 use bin_buffer::*;
-use crate::compress::*;
 use std::convert::TryFrom;
+use ass::*;
 
 #[derive(Clone)]
 pub struct PolyTriangle<T>{
@@ -111,8 +111,9 @@ pub fn test(){
 pub fn triangulate<T>(polyzs: Vec<PolygonZ<T>>, logger: &mut Logger) -> Vec<PolyTriangle<T>>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + Default + MinMax + std::fmt::Display,
+    T: Into<f64> + std::fmt::Debug,
     u8: Into<T>,
-    T: Into<f64> + FromF64 + std::fmt::Debug
+    f64: Ass<T>,
 {
     let mut res = Vec::new();
     let mut skipped = 0;
@@ -300,7 +301,8 @@ where
 fn merge_inner<T>(outer: &mut Vec<P3<T>>, mut inners: Vvec<P3<T>>) -> Vec<P3<T>>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + Default + MinMax,
-    T: Into<f64> + FromF64
+    T: Into<f64>,
+    f64: Ass<T>,
 {
     //merge inner ring with highest x coordinate first (this one can defneitely to see the outer ring)
     inners.sort_by(|a, b| rightmost(a).partial_cmp(&rightmost(b)).unwrap_or(Ordering::Equal));
@@ -337,14 +339,14 @@ where
 
             let x: f64 = x1 + t * (x2 - x1);
             let cur_dis: f64 = x - x3;
-            if cur_dis<0.0 || T::from(cur_dis) >= best_dis {continue}
+            if cur_dis<0.0 || cur_dis.ass() >= best_dis {continue}
 
-            best_dis = T::from(cur_dis);
+            best_dis = cur_dis.ass();
             let z1: f64 = outer[i].2.into();
             let z2: f64 = outer[(i + 1) % outer.len()].2.into();
-            let z: T = T::from(z1 + t * (z2 - z1));
+            let z: T = (z1 + t * (z2 - z1)).ass();
             intersect_index = (i + 1) % outer.len();
-            intersect = (T::from(x),T::from(y3),z);
+            intersect = (x.ass(),y3.ass(),z);
         }
 
         let mut new_vertices= Vec::new();

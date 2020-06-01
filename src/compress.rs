@@ -4,43 +4,29 @@ use crate::info::CompTarget;
 use crate::logger::*;
 use crate::triangulate::triangulate;
 use crate::triangulate::PolyTriangle;
-// To get a value from u64, std converts are safe
-// I know when i can cast(from offset, multi, etc)
-// Just want to do it without checking
-pub trait FromU64{
-    fn from(x: u64) -> Self;
-}
-
-impl FromU64 for u8{ fn from(x: u64) -> Self{ x as u8 } }
-impl FromU64 for u16{ fn from(x: u64) -> Self{ x as u16 } }
-impl FromU64 for u32{ fn from(x: u64) -> Self{ x as u32 } }
-
-pub trait FromF64{
-    fn from(x: f64) -> Self;
-}
-
-impl FromF64 for u8{ fn from(x: f64) -> Self{ x as u8 } }
-impl FromF64 for u16{ fn from(x: f64) -> Self{ x as u16 } }
-impl FromF64 for u32{ fn from(x: f64) -> Self{ x as u32 } }
-impl FromF64 for u64{ fn from(x: f64) -> Self{ x as u64 } }
-impl FromF64 for f32{ fn from(x: f64) -> Self{ x as f32 } }
-impl FromF64 for f64{ fn from(x: f64) -> Self{ x as f64 } }
+use ass::*;
 
 // Peform compression by using a range offset and multiplier
 pub trait OffScaleFromU64{
     fn offscale(x: f64, o: u64, m: u64) -> Self;
 }
 // Generic implementation
-impl<T: FromU64> OffScaleFromU64 for T{
+impl<T> OffScaleFromU64 for T
+    where
+        u64: Ass<T>,
+{
     fn offscale(x: f64, o: u64, m: u64) -> Self{
-        T::from(((x - o as f64) * m as f64).round() as u64)
+        (((x - o as f64) * m as f64).round() as u64).ass()
     }
 }
 // We must be able to cast a bounding box to the right type as well
-fn bb_to_t<T: FromU64>(bb: (P3<f64>,P3<f64>)) -> (P3<T>,P3<T>){
+fn bb_to_t<T>(bb: (P3<f64>,P3<f64>)) -> (P3<T>,P3<T>)
+    where
+        u64: Ass<T>,
+{
     (
-        (T::from((bb.0).0 as u64), T::from((bb.0).1 as u64), T::from((bb.0).2 as u64)),
-        (T::from((bb.1).0 as u64), T::from((bb.1).1 as u64), T::from((bb.1).2 as u64)),
+        (((bb.0).0 as u64).ass(), ((bb.0).1 as u64).ass(), ((bb.0).2 as u64).ass()),
+        (((bb.1).0 as u64).ass(), ((bb.1).1 as u64).ass(), ((bb.1).2 as u64).ass()),
     )
 }
 // Ability to be convertable to a compressed buffer
@@ -98,8 +84,11 @@ ImplCompressable!(Compressable,compress,Vec<PolyTriangle<u32>>,compress_polytria
 ImplCompressable!(TriangleCompressable,triangle_compress,Vec<PolygonZ<f64>>,compress_polygonz_into,triangulate);
 // Take ShapeZ of f64 and turn into ShapeZ of given T
 // Used to implement Compressable
-pub fn compress_shapez_into<T: Bufferable + FromU64>
-    (shapezs: Vec<ShapeZ<f64>>, mx: u64, my: u64, multi: u64) -> Vec<ShapeZ<T>>{
+pub fn compress_shapez_into<T: Bufferable>
+    (shapezs: Vec<ShapeZ<f64>>, mx: u64, my: u64, multi: u64) -> Vec<ShapeZ<T>>
+    where
+        u64: Ass<T>,
+{
     let mut nshapezs = Vec::new();
     for shape in shapezs{
         let mut vec = Vec::new();
@@ -110,15 +99,18 @@ pub fn compress_shapez_into<T: Bufferable + FromU64>
         }
         nshapezs.push(ShapeZ{
             points: vec,
-            z: T::from(shape.z as u64),
+            z: (shape.z as u64).ass(),
             bb: bb_to_t::<T>(shape.bb),
         });
     }
     nshapezs
 }
 // Same as above but for PolygonZ
-pub fn compress_polygonz_into<T: Bufferable + FromU64>
-    (polygonzs: Vec<PolygonZ<f64>>, mx: u64, my: u64, multi: u64) -> Vec<PolygonZ<T>>{
+pub fn compress_polygonz_into<T: Bufferable>
+    (polygonzs: Vec<PolygonZ<f64>>, mx: u64, my: u64, multi: u64) -> Vec<PolygonZ<T>>
+    where
+        u64: Ass<T>,
+{
     let mut npolygonzs = Vec::new();
     for pz in polygonzs{
         let style = pz.style;
@@ -145,8 +137,10 @@ pub fn compress_polygonz_into<T: Bufferable + FromU64>
     }
     npolygonzs
 }
-pub fn compress_polytriangle_into<T: Bufferable + FromU64>
+pub fn compress_polytriangle_into<T: Bufferable>
     (polytriangles: Vec<PolyTriangle<u32>>, mx: u64, my: u64, multi: u64) -> Vec<PolyTriangle<T>>
+    where
+        u64: Ass<T>,
 {
     let mut npts = Vec::new();
     for pt in polytriangles{

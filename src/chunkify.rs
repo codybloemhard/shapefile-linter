@@ -1,11 +1,10 @@
 use crate::data::{ShapeZ, Vvec,BB,MinMax,HasBB,CustomShape,BoundingType,StretchableBB};
 use crate::logger::*;
-use crate::compress::FromU64;
 use crate::triangulate::PolyTriangle;
 use std::ops::{Div,Add,Mul,Sub};
 use std::borrow::Borrow;
 use std::collections::HashMap;
-use std::convert::TryInto;
+use ass::*;
 // Returns true if inner is completely inside outer, else false
 pub fn bb_in_bb_xy<T>(outer: &BB<T>, inner: &BB<T>) -> bool
     where
@@ -24,11 +23,12 @@ pub type ChunksLine<T> = Vec<ChunkLine<T>>;
 pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) -> ChunksLine<T>
     where
         T: Clone + Copy + Default + PartialEq + PartialOrd + Into<usize>,
-        T: FromU64 +  BoundingType + MinMax,
+        T: BoundingType + MinMax,
         T: Div<Output = T> + Add<Output = T> + Mul<Output = T>,
+        u64: Ass<T>,
 {
     let cuts_u64 = cuts;
-    let cuts = T::from(cuts);
+    let cuts = (cuts).ass();
     let mut grid: Vvec<ShapeZ<T>> = vec![vec![]; (cuts_u64 * cuts_u64) as usize];
     let bb0x = (gbb.0).0;
     let bb0y = (gbb.0).1;
@@ -38,8 +38,8 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
     }
     let gwid = (gbb.1).0;
     let ghei = (gbb.1).1;
-    let csizex = (gwid / cuts) + T::from(1u64);
-    let csizey = (ghei / cuts) + T::from(1u64);
+    let csizex = (gwid / cuts) + (1u64).ass();
+    let csizey = (ghei / cuts) + (1u64).ass();
     for shape in shapes{
         let bb = shape.bounding_box();
         let x0 = (bb.0).0;
@@ -264,18 +264,20 @@ pub type ChunksPoly<T> = Vec<ChunkPoly<T>>;
 pub fn chunkify_polytriangles<T>(cuts: u8, gbb: BB<T>, polygons: Vec<PolyTriangle<T>>) -> ChunksPoly<T>
     where
         T: Clone + Copy + Default + PartialEq + PartialOrd + Eq + std::hash::Hash,
-        T: FromU64 +  BoundingType + MinMax,
+        T: BoundingType + MinMax,
         T: Div<Output = T> + Add<Output = T> + Mul<Output = T> + Sub<Output = T>,
         T: Into<u64>,
         T: std::fmt::Display + std::fmt::Debug,
+        u64: Ass<T>,
+        u8: Ass<T>,
 {
     let cuts_usize = cuts as usize;
-    let cuts = T::from(cuts.try_into().unwrap());
+    let cuts = cuts.ass();
     let mut grid: Vvec<PolyTriangle<T>> = vec![vec![]; cuts_usize * cuts_usize];
     let gwid = (gbb.1).0 - (gbb.0).0;
     let ghei = (gbb.1).1 - (gbb.0).1;
-    let csizex = (gwid / cuts) + T::from(1u64);
-    let csizey = (ghei / cuts) + T::from(1u64);
+    let csizex = (gwid / cuts) + (1u64).ass();
+    let csizey = (ghei / cuts) + (1u64).ass();
     let cinf = (csizex,csizey,(gbb.0).0,(gbb.0).1);
     println!("{:?} {} {}", gbb, csizex, csizey);
     for polygon in polygons{
