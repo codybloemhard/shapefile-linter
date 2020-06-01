@@ -20,6 +20,7 @@ pub enum Issue{
 pub struct Logger{
     issues: HashMap<Issue,usize>,
     pub debug_panic: bool,
+    pub debug_print: bool,
 }
 
 impl Logger{

@@ -16,3 +16,5 @@ Cargo.lock
 **/*outp
 geoboi
 styles
+**/*.polychunk
+**/*.polyinfo

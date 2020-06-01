@@ -3,6 +3,7 @@ use crate::data::{PolygonZ,Vvec,StretchableBB,get_global_bb,UpdateableBB,ShapeZ,
 use crate::info::CompTarget;
 use crate::logger::*;
 use crate::triangulate::triangulate;
+use crate::triangulate::PolyTriangle;
 // To get a value from u64, std converts are safe
 // I know when i can cast(from offset, multi, etc)
 // Just want to do it without checking
@@ -21,6 +22,7 @@ pub trait FromF64{
 impl FromF64 for u8{ fn from(x: f64) -> Self{ x as u8 } }
 impl FromF64 for u16{ fn from(x: f64) -> Self{ x as u16 } }
 impl FromF64 for u32{ fn from(x: f64) -> Self{ x as u32 } }
+impl FromF64 for u64{ fn from(x: f64) -> Self{ x as u64 } }
 impl FromF64 for f32{ fn from(x: f64) -> Self{ x as f32 } }
 impl FromF64 for f64{ fn from(x: f64) -> Self{ x as f64 } }
 
@@ -92,6 +94,7 @@ fn id<T>(v: T, _logger: &mut Logger) -> T { v }
 // Actually implement it for the needed types
 ImplCompressable!(Compressable,compress,Vec<ShapeZ<f64>>,compress_shapez_into,id);
 ImplCompressable!(Compressable,compress,Vec<PolygonZ<f64>>,compress_polygonz_into,id);
+ImplCompressable!(Compressable,compress,Vec<PolyTriangle<u32>>,compress_polytriangle_into,id);
 ImplCompressable!(TriangleCompressable,triangle_compress,Vec<PolygonZ<f64>>,compress_polygonz_into,triangulate);
 // Take ShapeZ of f64 and turn into ShapeZ of given T
 // Used to implement Compressable
@@ -141,6 +144,29 @@ pub fn compress_polygonz_into<T: Bufferable + FromU64>
         });
     }
     npolygonzs
+}
+pub fn compress_polytriangle_into<T: Bufferable + FromU64>
+    (polytriangles: Vec<PolyTriangle<u32>>, mx: u64, my: u64, multi: u64) -> Vec<PolyTriangle<T>>
+{
+    let mut npts = Vec::new();
+    for pt in polytriangles{
+        let mut vec = Vec::new();
+        for (x,y) in pt.vertices{
+            let xx = T::offscale(x as f64, mx, multi);
+            let yy = T::offscale(y as f64, my, multi);
+            vec.push((xx,yy));
+        }
+        let ((a,b,c),(d,e,f)) = pt.bb;
+        let fbb = ((a as f64, b as f64, c as f64),(d as f64, e as f64, f as f64));
+        npts.push(PolyTriangle{
+            vertices: vec,
+            indices: pt.indices,
+            style: pt.style,
+            outline: pt.outline,
+            bb: bb_to_t::<T>(fbb),
+        });
+    }
+    npts
 }
 // Specific commpression method for heightmaps
 // Does nothing with value types, removes redundant data
