@@ -12,14 +12,15 @@ use std::convert::TryFrom;
 pub struct PolyTriangle<T>{
     vertices: Vec<(T,T)>,
     indices: Vec<u16>,
-    style: usize,
     outline: Vec<(u16,u16)>,
+    style: usize,
 }
 
 impl<T: Bufferable + Clone> Bufferable for PolyTriangle<T>{
     fn into_buffer(self, buf: &mut Buffer){
         self.vertices.into_buffer(buf);
         self.indices.into_buffer(buf);
+        self.outline.into_buffer(buf);
         self.style.into_buffer(buf);
     }
 
@@ -399,7 +400,6 @@ where
             let xu = x.unwrap();
             let yu = y.unwrap();
             if(xu > start){
-                
                 ol.push((start, xu));
             }
             
@@ -407,7 +407,7 @@ where
         }
         else if i+1 == vertices.len(){
             let x = u16::try_from(i);
-            let y = u16::try_from(next_i);
+            let y = u16::try_from(i+1);
             if x.is_err() || y.is_err(){
                 logger.log(Issue::OutOfIndicesBound);
             }
