@@ -42,6 +42,10 @@ fn do_things() -> Option<()>{
       --ft (default none) (string) type of input file
       --tag0 (default none) (string) xml tag variable
       --tag1 (default none) (string) xml tag variable
+      --cuts (default 1) number of cuts when chunking
+      --cuts_multi (default 2) subdivide multiplier
+      --levels (default 6) how many LOD's we have
+      --mods (integer...) heightline modulo's
       "
     );
 
@@ -51,6 +55,10 @@ fn do_things() -> Option<()>{
     let ft = args.get_string("ft");
     let tag0 = args.get_string("tag0");
     let tag1 = args.get_string("tag1");
+    let cuts = args.get_integer("cuts");
+    let cuts_multi = args.get_integer("cuts_multi");
+    let levels = args.get_integer("levels");
+    let mods = args.get_integers("mods");
 
     let mut logger = Logger::default();
 
@@ -206,12 +214,19 @@ fn do_things() -> Option<()>{
         println!("mx: {} my: {} mz: {} multi: {}", mx, my, mz, multi);
         println!("{:?}{:?}", bmin, bmax);
         print_height_distribution(&shapes);
-        let cuts_mul = 2;
-        let mut cuts = 1u64;
+        let cuts_mul = if cuts_multi > 0 { levels as u64 }
+        else { panic!("Cuts multiplier must be at least one!"); };
+        let mut cuts = if cuts > 0 { cuts as u64 }
+        else { panic!("Cuts should be at least one!"); };
         let mut info_buffer = Vec::new();
-        let levels = 6u64;
+        let levels = if levels > 0 { levels as u64 }
+        else { panic!("Levels can not be smaller than one!"); };
         levels.into_buffer(&mut info_buffer);
-        let mods = vec![400,200,100,50,25,5];
+        let mods = if !mods.is_empty() { mods.into_iter().map(|x| x as u64).collect::<Vec<_>>() }
+        else { vec![400,200,100,50,25,5] };
+        if mods.len() != levels as usize{
+            panic!("Mods lenght must equal levels!");
+        }
         for i in 0..levels{
             for (x,y,chunk) in cut(cuts.max(1), (bmin,bmax), &shapes, &mut logger){
                 let points0 = chunk.iter().fold(0, |sum, sz| sum + sz.points_len());
