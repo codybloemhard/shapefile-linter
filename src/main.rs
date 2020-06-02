@@ -214,7 +214,7 @@ fn do_things() -> Option<()>{
         println!("mx: {} my: {} mz: {} multi: {}", mx, my, mz, multi);
         println!("{:?}{:?}", bmin, bmax);
         print_height_distribution(&shapes);
-        let cuts_mul = if cuts_multi > 0 { levels as u64 }
+        let cuts_mul = if cuts_multi > 0 { cuts_multi as u64 }
         else { panic!("Cuts multiplier must be at least one!"); };
         let mut cuts = if cuts > 0 { cuts as u64 }
         else { panic!("Cuts should be at least one!"); };
