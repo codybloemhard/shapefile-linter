@@ -237,8 +237,9 @@ pub fn optimize_lines<T>(mut old: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     }
 
     let mut independents = Vec::new();
-    while !old.is_empty(){
-        let shape = old.pop().unwrap(); // we checked in the while loop if old has an item
+    loop {
+        let shape = if let Some(s) = old.pop() { s }
+        else { break; };
         let other = find_other(&shape, &mut old);
         if let Some((fres,oshape)) = other{ // if we find a match, merge and put it back
             let news = merge(fres,shape,oshape);

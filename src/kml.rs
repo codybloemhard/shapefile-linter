@@ -173,9 +173,8 @@ pub fn parse_coords(string: String) -> Vec<P4<f64>>{
         if x.is_err() || y.is_err() || z.is_err(){
             panic!("xyz none");
         }
-        // println!("{:?} {:?} {:?}", x, y, z);
-        fn hclamp<T: std::fmt::Debug>(c: Result<f64,T>) -> f64{
-            (c.unwrap() / 5.0).round() * 5.0
+        fn hclamp<T>(c: Result<f64,T>) -> f64{
+            (c.unwrap_or_default() / 5.0).round() * 5.0
         }
         let (_,_,x,y) = degree_to_utm((x.unwrap(),y.unwrap()));
         line.push((x, y, hclamp(z), 0.0));
@@ -270,7 +269,7 @@ pub fn kml_geo(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize,
                     colour = content;
                 }else if in_outline{
                     if content.is_empty() { panic!("Outline tag content can not be empty!"); }
-                    outline = content.chars().next().unwrap();
+                    outline = content.chars().next().unwrap_or('0');
                 }else if in_style_url{
                     style_url = content;
                 }else if in_coordinates && in_outer{

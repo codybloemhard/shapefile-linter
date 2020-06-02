@@ -400,16 +400,16 @@ where
     remaining_polygon.reserve(vertices.len());
     let mut orig_indices = Vec::new();
     for (i,point) in vertices.iter().enumerate(){
-        let x = u16::try_from(i);
-        if x.is_err(){
+        let x = if let Ok(xx) = u16::try_from(i) { xx }
+        else{
             logger.log(Issue::OutOfIndicesBound);
             return None;
-        }
+        };
         let p = PolyPoint{
             point: *point,
             reflex: false,
             ear: false,
-            index: x.unwrap(),
+            index: x,
         };
         orig_indices.push(remaining_polygon.push_back(p));
     }

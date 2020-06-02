@@ -157,7 +157,7 @@ fn do_things() -> Option<()>{
             let max = wrong.iter().fold(std::f64::MIN, |m,x| m.max(*x));
             let mut countmap = HashMap::new();
             for x in wrong{
-                let mut y = 0usize;
+                let y: usize;
                 unsafe{ y = std::mem::transmute(x); }
                 let newcount = match countmap.get(&y){
                     Some(n) => { n + 1 },
@@ -312,7 +312,8 @@ fn do_things() -> Option<()>{
         polyzs.iter_mut().for_each(|p| p.stretch_bb());
         println!("There are {} polygons!", polyzs.len());
         let gbb = get_global_bb(&polyzs);
-        let cuts = 8u8;
+        let cuts = if cuts > 0 && cuts < 265{ cuts as u8 }
+        else { panic!("Cuts need to be in range 1..256"); };
         let triangles = crate::triangulate::triangulate(polyzs, &mut logger);
         let chunks = crate::chunkify::chunkify_polytriangles(cuts, gbb, triangles);
         for (x,y,chunk) in chunks{

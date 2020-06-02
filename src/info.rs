@@ -103,9 +103,8 @@ pub fn compress_repeated_points_in_lines_stats<'a, S>(shapes: &'a [S]) -> (usize
     let mut repeated = 0;
     for shape in shapes{
         let mut iter = shape.into_iter();
-        let first = iter.next();
-        if first.is_none() { continue; }
-        let last = first.unwrap();
+        let last = if let Some(first) = iter.next(){ first }
+        else { continue; };
         for p in iter{
             points += 1;
             if p == last{
