@@ -5,6 +5,7 @@ use crate::data::{VvP4,P4};
 use crate::convert::degree_to_utm;
 use crate::logger::*;
 use hex::FromHex;
+use std::str::FromStr;
 // right amount of spaces for x indentations
 fn indent(size: usize) -> String{
     const INDENT: &'static str = "  ";
@@ -218,7 +219,7 @@ pub fn kml_height(path: &str) -> VvP4{
     }
     vvp4
 }
-//parse geological kml file
+//parse polygons from geological kml file
 pub fn kml_geo(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize, logger: &mut Logger) -> Vec<(usize,(VvP4,VvP4))>{
     let file = open_file!(path);
     let parser = EventReader::new(file);
@@ -345,6 +346,145 @@ pub fn kml_geo(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize,
             inners.push(parse_coords(innerraw));
         }
         polys.push((id,(outers,inners)));
+    }
+    polys
+}
+
+//parse lines from geological kml file
+pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize, logger: &mut Logger) -> Vec<(usize,VvP4)>{
+    let file = open_file!(path);
+    let parser = EventReader::new(file);
+    let mut colset = HashSet::new();
+    let mut colmap = HashMap::new();
+    let mut in_line_style = false;
+    let mut style_id = String::new();
+    let mut in_colour = false;
+    let mut in_width = false;
+    let mut colour = String::new();
+    let mut width = String::new();
+    let mut styles_raw = Vec::new();
+    let mut in_style_url = false;
+    let mut style_url = String::new();
+    let mut in_outer = false;
+    let mut in_inner = false;
+    let mut in_coordinates = false;
+    let mut in_outline = false;
+    let mut outline = '0';
+    let mut lines = Vec::new();
+    let mut polygons = Vec::new();
+    for e in parser{
+        match e{
+            Ok(XmlEvent::StartElement { name, attributes, .. }) => {
+                let nname = clean_name(name.to_string());
+                if &nname == "style"{
+                    if attributes.len() != 1{
+                        panic!("style tag should have only one attribute: id");
+                    }
+                    style_id = attributes[0].value.clone();
+                }else if &nname == "linestyle"{
+                    in_line_style = true;
+                }else if &nname == "color" && in_line_style{// fool, orang is coloure!
+                    in_colour = true;
+                }else if &nname == "width" && in_line_style{
+                    in_width = true;
+                }else if &nname == "styleurl"{
+                    in_style_url = true;
+                }else if &nname == "outerboundaryis"{
+                    in_outer = true;
+                }else if &nname == "innerboundaryis"{
+                    in_inner = true;
+                }else if &nname == "coordinates"{
+                    in_coordinates = true;
+                }else if &nname == "outline"{
+                    in_outline = true;
+                }
+            }
+            Ok(XmlEvent::Characters(content)) => {
+                if in_colour{
+                    colour = content;
+                }else if in_width{
+                    if content.is_empty() { panic!("Width should have content!"); }
+                    width = content;
+                }else if in_style_url{
+                    style_url = content;
+                }else if in_coordinates && (in_outer || in_inner){
+                    lines.push(content);
+                }else if in_outline{
+                    outline = content.chars().next().expect("Outline content should have at least on char!");
+                }
+            }
+            Ok(XmlEvent::EndElement{ name }) => {
+                let nname = clean_name(name.to_string());
+                if &nname == "style" {
+                    styles_raw.push((style_id,colour,width,outline));
+                    style_id = String::new(); // befriend the borrowchecker
+                    colour = String::new(); // by giving him crap to eat
+                    width = String::new(); // take this mr crab
+                    outline = '0';
+                }
+                else if &nname == "color" { in_colour = false; }
+                else if &nname == "width" { in_width = false; }
+                else if &nname == "styleurl" { in_style_url = false; }
+                else if &nname == "outerboundaryis" { in_outer = false; }
+                else if &nname == "innerboundaryis" { in_inner = false; }
+                else if &nname == "coordinates" { in_coordinates = false; }
+                else if &nname == "outline" { in_outline = false; }
+                else if &nname == "linestyle" { in_line_style = false }
+                else if &nname == "polygon" {
+                    polygons.push((style_url.clone(),lines));
+                    lines = Vec::new();
+                }else if &nname == "placemark" {
+                    style_url = String::new();
+                }
+            }
+            Err(e) => {
+                println!("Error: {}", e);
+                break;
+            }
+            _ => {}
+        }
+    }
+    let mut skipmap = HashSet::new();
+    for (id,colourstr,width,outline) in styles_raw{
+        if colset.contains(&id) { continue; }
+        if outline != '1' {
+            skipmap.insert(id.clone());
+            continue;
+        }
+        colmap.insert(id.clone(), *counter);
+        colset.insert(id.clone());
+        let width_int = if let Ok(v) = f32::from_str(&width) { (v * 10.0) as u8 }
+        else { panic!("Could not parse width as float!"); };
+        let components = if let Ok(c) = Vec::from_hex(colourstr)
+        { c } else { panic!("Could not parse hex colour!"); };
+        if components.len() < 3 {
+            panic!("Expected at least 3 components in colour!");
+        }
+        let offset = components.len() - 3;
+        let r = components[offset];
+        let g = components[offset + 1];
+        let b = components[offset + 2];
+        styles.push((width_int,r,g,b));
+        *counter += 1;
+    }
+    let mut polys = Vec::new();
+    for (sturl,rawlines) in polygons{
+        let url = &sturl.chars().filter(|c| *c != '#').collect::<String>();
+        if skipmap.contains(url){ continue; }
+        if url == ""{
+            logger.log(Issue::EmptyStyleId);
+            continue;
+        }
+        let id = if let Some(idd) = colmap.get(url)
+        { *idd } else {
+            logger.log(Issue::MissingStyleId);
+            continue;
+        };
+        let mut lines = Vec::new();
+        for linesraw in rawlines{
+            lines.push(parse_coords(linesraw));
+        }
+        polys.push((id,lines));
     }
     polys
 }

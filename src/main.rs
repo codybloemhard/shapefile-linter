@@ -329,6 +329,15 @@ fn do_things() -> Option<()>{
         gbb.into_buffer(&mut infobuffer);
         cuts.into_buffer(&mut infobuffer);
         write_buffer("chunks.polyinfo", &infobuffer, &timer);
+    }else if mode == "geolines"{
+        let mut styles = Vec::new();
+        let mut counter = 0;
+        let mut lines = Vec::new();
+        for file in infiles{
+            let llines = kml_geo_lines(&file, &mut styles, &mut counter, &mut logger);
+            lines.extend(llines);
+        }
+        println!("{}", lines.len());
     }else if mode == "check-tag-child"{
         for file in infiles{
             println!("{}", check_tag_child(&file,&tag0,&tag1));
