@@ -49,6 +49,8 @@ macro_rules! ImplCompressable {
                     (mx,my,mz,multi).into_buffer(&mut buffer);
                     macro_rules! TargetIntoBuffer {
                         ($ttype:ident) => {
+                            let tsize = std::mem::size_of::<$ttype>() as u8;
+                            tsize.into_buffer(&mut buffer);
                             let mut ns = $fname::<$ttype>(self,mx,my,multi);
                             ns.iter_mut().for_each(|x| x.stretch_bb());
                             ns.iter_mut().for_each(|x| x.update_bb());

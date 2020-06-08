@@ -208,6 +208,7 @@ fn do_things() -> Option<()>{
         let my = u64::from_buffer(&mut buffer)?;
         let mz = u64::from_buffer(&mut buffer)?;
         let multi = u64::from_buffer(&mut buffer)?;
+        let tsize = u8::from_buffer(&mut buffer)?;
         let bmin = <(u16,u16,u16)>::from_buffer(&mut buffer)?;
         let bmax = <(u16,u16,u16)>::from_buffer(&mut buffer)?;
         let shapes = <std::vec::Vec<ShapeZ<u16>> as Bufferable>::from_buffer(&mut buffer)?;
@@ -260,6 +261,7 @@ fn do_things() -> Option<()>{
         my.into_buffer(&mut info_buffer);
         mz.into_buffer(&mut info_buffer);
         multi.into_buffer(&mut info_buffer);
+        tsize.into_buffer(&mut info_buffer);
         bmin.into_buffer(&mut info_buffer);
         bmax.into_buffer(&mut info_buffer);
         mods.into_buffer(&mut info_buffer);
@@ -342,7 +344,7 @@ fn do_things() -> Option<()>{
         for file in infiles{
             println!("{}", check_tag_child(&file,&tag0,&tag1));
         }
-    }else if mode == "checK-nonempty-tag"{
+    }else if mode == "check-nonempty-tag"{
         for file in infiles{
             println!("{}", check_nonempty_tag(&file,&tag0));
         }

@@ -370,6 +370,9 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
     let mut in_coordinates = false;
     let mut in_outline = false;
     let mut outline = '0';
+    let mut in_line = false;
+    let mut break_lines = Vec::new();
+    let mut other_lines = Vec::new();
     let mut lines = Vec::new();
     let mut polygons = Vec::new();
     for e in parser{
@@ -393,6 +396,8 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
                     in_outer = true;
                 }else if &nname == "innerboundaryis"{
                     in_inner = true;
+                }else if &nname == "linestring"{
+                    in_line = true;
                 }else if &nname == "coordinates"{
                     in_coordinates = true;
                 }else if &nname == "outline"{
@@ -409,6 +414,8 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
                     style_url = content;
                 }else if in_coordinates && (in_outer || in_inner){
                     lines.push(content);
+                }else if in_coordinates && in_line{
+                    break_lines.push(content);
                 }else if in_outline{
                     outline = content.chars().next().expect("Outline content should have at least on char!");
                 }
@@ -433,7 +440,12 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
                 else if &nname == "polygon" {
                     polygons.push((style_url.clone(),lines));
                     lines = Vec::new();
-                }else if &nname == "placemark" {
+                }
+                else if &nname == "linestring"{
+                    other_lines.push((style_url.clone(),break_lines));
+                    break_lines = Vec::new();
+                }
+                else if &nname == "placemark" {
                     style_url = String::new();
                 }
             }
