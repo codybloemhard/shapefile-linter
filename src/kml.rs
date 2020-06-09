@@ -369,10 +369,8 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
     let mut in_inner = false;
     let mut in_coordinates = false;
     let mut in_outline = false;
-    let mut outline = '0';
+    let mut outline = '-';
     let mut in_line = false;
-    let mut break_lines = Vec::new();
-    let mut other_lines = Vec::new();
     let mut lines = Vec::new();
     let mut polygons = Vec::new();
     for e in parser{
@@ -415,7 +413,7 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
                 }else if in_coordinates && (in_outer || in_inner){
                     lines.push(content);
                 }else if in_coordinates && in_line{
-                    break_lines.push(content);
+                    lines.push(content);
                 }else if in_outline{
                     outline = content.chars().next().expect("Outline content should have at least on char!");
                 }
@@ -427,7 +425,7 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
                     style_id = String::new(); // befriend the borrowchecker
                     colour = String::new(); // by giving him crap to eat
                     width = String::new(); // take this mr crab
-                    outline = '0';
+                    outline = '-';
                 }
                 else if &nname == "color" { in_colour = false; }
                 else if &nname == "width" { in_width = false; }
@@ -442,8 +440,8 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
                     lines = Vec::new();
                 }
                 else if &nname == "linestring"{
-                    other_lines.push((style_url.clone(),break_lines));
-                    break_lines = Vec::new();
+                    polygons.push((style_url.clone(),lines));
+                    lines = Vec::new();
                 }
                 else if &nname == "placemark" {
                     style_url = String::new();
@@ -459,7 +457,7 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
     let mut skipmap = HashSet::new();
     for (id,colourstr,width,outline) in styles_raw{
         if colset.contains(&id) { continue; }
-        if outline != '1' {
+        if outline == '0' {
             skipmap.insert(id.clone());
             continue;
         }
@@ -479,7 +477,7 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
         styles.push((width_int,r,g,b));
         *counter += 1;
     }
-    let mut polys = Vec::new();
+    let mut res = Vec::new();
     for (sturl,rawlines) in polygons{
         let url = &sturl.chars().filter(|c| *c != '#').collect::<String>();
         if skipmap.contains(url){ continue; }
@@ -496,7 +494,7 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
         for linesraw in rawlines{
             lines.push(parse_coords(linesraw));
         }
-        polys.push((id,lines));
+        res.push((id,lines));
     }
-    polys
+    res
 }
