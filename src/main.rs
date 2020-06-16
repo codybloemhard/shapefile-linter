@@ -339,7 +339,17 @@ fn do_things() -> Option<()>{
             let llines = kml_geo_lines(&file, &mut styles, &mut counter, &mut logger);
             lines.extend(llines);
         }
-        println!("{}", lines.len());
+        println!("There are {} lines!", lines.len());
+        let mut slines = Vec::new();
+        for l in lines{
+            StyledLine::<u32>::from_as_int(l, &mut slines);
+        }
+        let infos = info_package(&slines);
+        let buffer = slines.compress(infos, &mut logger);
+        write_buffer("lines", &buffer, &timer);
+        let mut stylebuffer = Vec::new();
+        styles.into_buffer(&mut stylebuffer);
+        write_buffer("styles", &stylebuffer, &timer);
     }else if mode == "check-tag-child"{
         for file in infiles{
             println!("{}", check_tag_child(&file,&tag0,&tag1));

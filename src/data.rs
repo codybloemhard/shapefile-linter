@@ -162,6 +162,7 @@ macro_rules! ImplStretchableBB{
 ImplStretchableBB!(ShapeZ);
 ImplStretchableBB!(PolygonZ);
 ImplStretchableBB!(PolyTriangle);
+ImplStretchableBB!(StyledLine);
 // When a shape can update it's own boundingbox, to be consistent with it's points afterwards
 pub trait UpdateableBB{
     fn update_bb(&mut self);
@@ -186,6 +187,8 @@ impl<T> UpdateableBB for PolygonZ<T>
 impl<T> UpdateableBB for PolyTriangle<T>
     where
     T: BoundingType + MinMax + Copy,
+{ fn update_bb(&mut self){ /* noop */ } }
+impl<T> UpdateableBB for StyledLine<T>
 { fn update_bb(&mut self){ /* noop */ } }
 // Stretch a bounding box with other boundingboxes
 // This to get the global boundingbox
@@ -299,6 +302,103 @@ impl<'a, T> IntoIterator for &'a ShapeZ<T>{
         ShapeZIter{
             current: 0,
             shapez: self,
+        }
+    }
+}
+// ShapeZ: a height line, all it's points are on the same height
+#[derive(Clone)]
+pub struct StyledLine<T>{
+    pub points: Vec<P2<T>>,
+    pub style: usize,
+    pub bb: BB<T>,
+}
+
+impl<T> StyledLine<T>{
+    pub fn from_as_int((style,ps): (usize, Vvec<P2<f64>>), col: &mut Vec<StyledLine<u32>>) {
+        for l in ps.into_iter().map(|v| v.into_iter().map(|(x,y)| (x as u32, y as u32)).collect::<Vec<_>>()){
+            let mut temp = StyledLine::<u32>{
+                points: l,
+                style,
+                bb: u32::start_box(),
+            };
+            temp.stretch_bb();
+            col.push(temp);
+        }
+    }
+}
+// We want to export and import ShapeZ as buffer
+impl<T: Bufferable + Clone> Bufferable for StyledLine<T>{
+    fn into_buffer(self, buf: &mut Buffer){
+        self.style.into_buffer(buf);
+        self.bb.0.into_buffer(buf);
+        self.bb.1.into_buffer(buf);
+        self.points.into_buffer(buf);
+    }
+
+    fn copy_into_buffer(&self, buf: &mut Buffer){
+        self.clone().into_buffer(buf);
+    }
+
+    fn from_buffer(buf: &mut ReadBuffer) -> Option<Self>{
+        let style = if let Some(ws) = usize::from_buffer(buf){ ws }
+        else { return Option::None; };
+        let bb0 = if let Some(wbb0) = <P3<T>>::from_buffer(buf){ wbb0 }
+        else { return Option::None; };
+        let bb1 = if let Some(wbb1) = <P3<T>>::from_buffer(buf){ wbb1 }
+        else { return Option::None; };
+        let vec = if let Some(wp) = Vec::<P2<T>>::from_buffer(buf){ wp }
+        else { return Option::None; };
+        Option::Some(Self{
+            points: vec,
+            style,
+            bb: (bb0,bb1),
+        })
+    }
+}
+// The next two are trivial
+impl<T> CustomShape for StyledLine<T>{
+    fn points_len(&self) -> usize{
+        self.points.len()
+    }
+}
+
+impl<T> HasBB<T> for StyledLine<T>{
+    fn bounding_box(&self) -> &BB<T>{
+        &self.bb
+    }
+
+    fn set_bounding_box(&mut self, bb: BB<T>){
+        self.bb = bb
+    }
+}
+// Again we need a state to iterate over the collection
+// This one is more complicated
+// We have to iterate over many nested vectors
+// As if it was one long one
+pub struct StyledLineIter<'a,T>{
+    pub current: usize,
+    pub sline: &'a StyledLine<T>,
+}
+// Here we define how we actually loop over seperate nested vectors
+impl<'a, T> Iterator for StyledLineIter<'a, T>{
+    type Item = &'a P2<T>;
+    fn next(&mut self) -> Option<Self::Item>{
+        let cur = self.current;
+        if cur >= self.sline.points.len() {
+            return Option::None;
+        }
+        self.current = cur + 1;
+        Option::Some(&self.sline.points[cur])
+    }
+}
+impl<'a, T> IntoIterator for &'a StyledLine<T>{
+    type Item = &'a P2<T>;
+    type IntoIter = StyledLineIter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter{
+        StyledLineIter{
+            current: 0,
+            sline: self,
         }
     }
 }

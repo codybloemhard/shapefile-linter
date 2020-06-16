@@ -1,5 +1,5 @@
 use bin_buffer::*;
-use crate::data::{PolygonZ,Vvec,StretchableBB,get_global_bb,UpdateableBB,ShapeZ,P3,VvP4};
+use crate::data::{PolygonZ,Vvec,StretchableBB,get_global_bb,UpdateableBB,ShapeZ,P2,P3,VvP4,StyledLine};
 use crate::info::CompTarget;
 use crate::logger::*;
 use crate::triangulate::triangulate;
@@ -83,6 +83,7 @@ fn id<T>(v: T, _logger: &mut Logger) -> T { v }
 ImplCompressable!(Compressable,compress,Vec<ShapeZ<f64>>,compress_shapez_into,id);
 ImplCompressable!(Compressable,compress,Vec<PolygonZ<f64>>,compress_polygonz_into,id);
 ImplCompressable!(Compressable,compress,Vec<PolyTriangle<u32>>,compress_polytriangle_into,id);
+ImplCompressable!(Compressable,compress,Vec<StyledLine<u32>>,compress_styledline_into,id);
 ImplCompressable!(TriangleCompressable,triangle_compress,Vec<PolygonZ<f64>>,compress_polygonz_into,triangulate);
 // Take ShapeZ of f64 and turn into ShapeZ of given T
 // Used to implement Compressable
@@ -138,6 +139,33 @@ pub fn compress_polygonz_into<T: Bufferable>
         });
     }
     npolygonzs
+}
+pub fn compress_styledline_into<T: Bufferable>
+    (slines: Vec<StyledLine<u32>>, mx: u64, my: u64, multi: u64) -> Vec<StyledLine<T>>
+    where
+        u64: Ass<T>,
+{
+    let mut nslines = Vec::new();
+    for sl in slines{
+        let style = sl.style;
+        let build = |old: Vec<P2<u32>>|{
+            let mut vec = Vec::new();
+            for (x,y) in old{
+                let xx = T::offscale(x as f64, mx, multi);
+                let yy = T::offscale(y as f64, my, multi);
+                vec.push((xx,yy));
+            }
+            vec
+        };
+        let ((a,b,c),(d,e,f)) = sl.bb;
+        let fbb = ((a as f64, b as f64, c as f64),(d as f64, e as f64, f as f64));
+        nslines.push(StyledLine{
+            points: build(sl.points),
+            bb: bb_to_t::<T>(fbb),
+            style,
+        });
+    }
+    nslines
 }
 pub fn compress_polytriangle_into<T: Bufferable>
     (polytriangles: Vec<PolyTriangle<u32>>, mx: u64, my: u64, multi: u64) -> Vec<PolyTriangle<T>>

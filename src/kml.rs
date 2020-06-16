@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::collections::{HashMap,HashSet};
 use xml::reader::{EventReader,XmlEvent};
-use crate::data::{VvP4,P4};
+use crate::data::{VvP4,VvP2,P4};
 use crate::convert::degree_to_utm;
 use crate::logger::*;
 use hex::FromHex;
@@ -351,7 +351,7 @@ pub fn kml_geo(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize,
 }
 
 //parse lines from geological kml file
-pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize, logger: &mut Logger) -> Vec<(usize,VvP4)>{
+pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize, logger: &mut Logger) -> Vec<(usize,VvP2)>{
     let file = open_file!(path);
     let parser = EventReader::new(file);
     let mut colset = HashSet::new();
@@ -492,7 +492,8 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
         };
         let mut lines = Vec::new();
         for linesraw in rawlines{
-            lines.push(parse_coords(linesraw));
+            let parsed = parse_coords(linesraw);
+            lines.push(parsed.into_iter().map(|(x,y,_,_)| (x,y)).collect::<Vec<_>>());
         }
         res.push((id,lines));
     }

@@ -32,7 +32,7 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
     let mut grid: Vvec<ShapeZ<T>> = vec![vec![]; (cuts_u64 * cuts_u64) as usize];
     let bb0x = (gbb.0).0;
     let bb0y = (gbb.0).1;
-    if bb0x != T::default() || bb0y != T::default(){
+    if bb0x != T::default() || bb0y != T::default(){ // only because it is compressed before it is chunkified
         logger.log(Issue::NonOriginBoundingbox);
         return vec![];
     }
@@ -251,6 +251,96 @@ pub fn optimize_lines<T>(mut old: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     independents
 }
 
+// pub type ChunkStyledLine<T> = (u64,u64,Vec<StyledLine<T>>);
+// pub type ChunksStyledLine<T> = Vec<ChunksStyledLine<T>>;
+// // take shapes, a global boundingbox and the amount of cuts to do over each axis
+// // cuts the shapes into a scales regular grid
+// pub fn cut_styled<T>(cuts: u64, gbb: BB<T>, shapes: &[StyledLine<T>], logger: &mut Logger) -> ChunksStyledLine<T>
+//     where
+//         T: Clone + Copy + Default + PartialEq + PartialOrd + Into<usize>,
+//         T: BoundingType + MinMax,
+//         T: Div<Output = T> + Add<Output = T> + Mul<Output = T>,
+//         u64: Ass<T>,
+// {
+//     let cuts_u64 = cuts;
+//     let cuts = (cuts).ass();
+//     let mut grid: Vvec<StyledLine<T>> = vec![vec![]; (cuts_u64 * cuts_u64) as usize];
+//     let bb0x = (gbb.0).0;
+//     let bb0y = (gbb.0).1;
+//     if bb0x != T::default() || bb0y != T::default(){ // only because it is compressed before it is chunkified
+//         logger.log(Issue::NonOriginBoundingbox);
+//         return vec![];
+//     }
+//     let gwid = (gbb.1).0;
+//     let ghei = (gbb.1).1;
+//     let csizex = (gwid / cuts) + (1u64).ass();
+//     let csizey = (ghei / cuts) + (1u64).ass();
+//     for shape in shapes{
+//         let bb = shape.bounding_box();
+//         let x0 = (bb.0).0;
+//         let y0 = (bb.0).1;
+//         let x1 = (bb.1).0;
+//         let y1 = (bb.1).1;
+//         let cx = x0 / csizex;
+//         let cy = y0 / csizey;
+//         let sbb = ((x0,y0,T::default()),(x1,y1,T::default()));
+//         let cbb = ((cx * csizex, cy * csizey, T::default()),
+//                     (cx * csizex + csizex, cy * csizey + csizey,T::default()));
+//         let outside = bb_out_bb_xy(&cbb, &sbb);
+//         if outside { continue; }
+//         let inside = bb_in_bb_xy(&cbb, &sbb);
+//         if inside{ // if the whole shape is in the chunk, just put it in
+//             let vpos = (cy * cuts + cx).into();
+//             grid[vpos].push(shape.clone());
+//         }else if !shape.points.is_empty(){ // we need to cut the shape
+//             let (fx,fy) = &shape.points[0];
+//             let mut old_cx = (*fx) / csizex;
+//             let mut old_cy = (*fy) / csizey;
+//             let mut points = Vec::new();
+//             let mut lastx = T::default();
+//             let mut lasty = T::default();
+//             let z = shape.z;
+//             for (x,y) in shape{
+//                 let new_cx = (*x) / csizex;
+//                 let new_cy = (*y) / csizey;
+//                 if new_cx == old_cx && new_cy == old_cy{
+//                     points.push((*x,*y));
+//                 }else{ // if we changed chunk ...
+//                     points.push((*x,*y)); // keep out of chunk point to keep the line partly inside the chunk
+//                     let mut newshape = ShapeZ{
+//                         points,
+//                         z,
+//                         bb: T::start_box(),
+//                     };
+//                     newshape.stretch_bb(); // calculate the right boundingbox
+//                     let vpos: usize = (old_cy * cuts + old_cx).into();
+//                     grid[vpos].push(newshape);
+//                     points = vec![(lastx,lasty),(*x,*y)]; // start a new collection for the new chunk
+//                     old_cx = new_cx;
+//                     old_cy = new_cy;
+//                 }
+//                 lastx = *x;
+//                 lasty = *y;
+//             }
+//             let mut newshape = ShapeZ{
+//                 points,
+//                 z,
+//                 bb: T::start_box(),
+//             }; // round up and push the last chunk
+//             newshape.stretch_bb();
+//             let vpos = (old_cy * cuts + old_cx).into();
+//             grid[vpos].push(newshape);
+//         }
+//     }
+//     let mut chunks = Vec::new(); // just assign chunk numbers
+//     for (i,vec) in grid.into_iter().enumerate(){
+//         let i = i as u64;
+//         let x = i % cuts_u64;
+//         let y = i / cuts_u64;
+//         chunks.push((x,y,vec));
+//     }
+//     chunks
+// }
 fn xy_to_chunk<T>((x,y): (T,T), (csizex,csizey,offx,offy): (T,T,T,T)) -> (usize,usize)
     where
         T: Div<Output = T> + Sub<Output = T>,
