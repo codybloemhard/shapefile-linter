@@ -339,11 +339,11 @@ fn do_things() -> Option<()>{
             let llines = kml_geo_lines(&file, &mut styles, &mut counter, &mut logger);
             lines.extend(llines);
         }
-        println!("There are {} lines!", lines.len());
         let mut slines = Vec::new();
         for l in lines{
             StyledLine::<u32>::from_as_int(l, &mut slines);
         }
+        println!("There are {} lines!", slines.len());
         let gbb = get_global_bb(&slines);
         let cuts = if cuts > 0 && cuts < 265{ cuts as u8 }
         else { panic!("Cuts need to be in range 1..256"); };
@@ -354,6 +354,13 @@ fn do_things() -> Option<()>{
             let filename = &format!("{}-{}.geolinechunk", x, y);
             write_buffer(filename, &buffer, &timer);
         }
+        // let infos = info_package(&slines);
+        // let buffer = slines.compress(infos, &mut logger);
+        // write_buffer("reeee", &buffer, &timer);
+        let mut infobuffer = Vec::new();
+        gbb.into_buffer(&mut infobuffer);
+        cuts.into_buffer(&mut infobuffer);
+        write_buffer("chunks.geolineinfo", &infobuffer, &timer);
         let mut stylebuffer = Vec::new();
         styles.into_buffer(&mut stylebuffer);
         write_buffer("styles", &stylebuffer, &timer);

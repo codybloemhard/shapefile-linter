@@ -271,6 +271,8 @@ pub fn cut_styled<T>(cuts: u8, gbb: BB<T>, shapes: &[StyledLine<T>]) -> ChunksSt
         u8: Ass<T>,
         u64: Ass<T>,
         T: Ass<usize> + Into<u64>,
+        usize: Ass<T>,
+        T: std::fmt::Debug,
 {
     let cuts_u64 = cuts as u64;
     let cuts_usize = cuts as usize;
@@ -287,12 +289,12 @@ pub fn cut_styled<T>(cuts: u8, gbb: BB<T>, shapes: &[StyledLine<T>]) -> ChunksSt
         let y0 = (bb.0).1;
         let x1 = (bb.1).0;
         let y1 = (bb.1).1;
-        let cx = x0 / csizex;
-        let cy = y0 / csizey;
+        let (cx, cy):(T,T) = { let (tx,ty) = xy_to_chunk((x0,y0), cinf); (tx.ass(),ty.ass())};
         let sbb = ((x0,y0,T::default()),(x1,y1,T::default()));
-        let cbb = ((cx * csizex, cy * csizey, T::default()),
-                    (cx * csizex + csizex, cy * csizey + csizey,T::default()));
+        let cbb = ((cx * csizex + cinf.2, cy * csizey + cinf.3, T::default()),
+                    (cx * csizex + csizex + cinf.2, cy * csizey + csizey + cinf.3,T::default()));
         let outside = bb_out_bb_xy(&cbb, &sbb);
+        println!("{:?} - {:?}", cbb, sbb);
         if outside { continue; }
         let inside = bb_in_bb_xy(&cbb, &sbb);
         if inside{ // if the whole shape is in the chunk, just put it in
@@ -317,7 +319,7 @@ pub fn cut_styled<T>(cuts: u8, gbb: BB<T>, shapes: &[StyledLine<T>]) -> ChunksSt
                         bb: T::start_box(),
                     };
                     newshape.stretch_bb(); // calculate the right boundingbox
-                    let vpos: usize = (old_cy * cuts_usize + old_cx).ass();
+                    let vpos: usize = (old_cy * cuts_usize + old_cx);
                     grid[vpos].push(newshape);
                     points = vec![last,*xy]; // start a new collection for the new chunk
                     old_cx = new_cx;
@@ -331,7 +333,7 @@ pub fn cut_styled<T>(cuts: u8, gbb: BB<T>, shapes: &[StyledLine<T>]) -> ChunksSt
                 bb: T::start_box(),
             }; // round up and push the last chunk
             newshape.stretch_bb();
-            let vpos: usize = (old_cy * cuts_usize + old_cx).ass();
+            let vpos: usize = (old_cy * cuts_usize + old_cx);
             grid[vpos].push(newshape);
         }
     }
