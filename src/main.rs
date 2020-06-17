@@ -344,9 +344,16 @@ fn do_things() -> Option<()>{
         for l in lines{
             StyledLine::<u32>::from_as_int(l, &mut slines);
         }
-        let infos = info_package(&slines);
-        let buffer = slines.compress(infos, &mut logger);
-        write_buffer("lines", &buffer, &timer);
+        let gbb = get_global_bb(&slines);
+        let cuts = if cuts > 0 && cuts < 265{ cuts as u8 }
+        else { panic!("Cuts need to be in range 1..256"); };
+        let chunks = crate::chunkify::cut_styled(cuts, gbb, &slines);
+        for (x,y,chunk) in chunks{
+            let infos = info_package(&chunk);
+            let buffer = chunk.compress(infos, &mut logger);
+            let filename = &format!("{}-{}.geolinechunk", x, y);
+            write_buffer(filename, &buffer, &timer);
+        }
         let mut stylebuffer = Vec::new();
         styles.into_buffer(&mut stylebuffer);
         write_buffer("styles", &stylebuffer, &timer);
