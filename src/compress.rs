@@ -78,6 +78,7 @@ macro_rules! ImplCompressable {
         }
     };
 }
+// dummy function for when we don't need a transformation
 fn id<T>(v: T, _logger: &mut Logger) -> T { v }
 // Actually implement it for the needed types
 ImplCompressable!(Compressable,compress,Vec<ShapeZ<f64>>,compress_shapez_into,id);
@@ -140,6 +141,7 @@ pub fn compress_polygonz_into<T: Bufferable>
     }
     npolygonzs
 }
+// styles lines start as u32
 pub fn compress_styledline_into<T: Bufferable>
     (slines: Vec<StyledLine<u32>>, mx: u64, my: u64, multi: u64) -> Vec<StyledLine<T>>
     where
@@ -167,6 +169,7 @@ pub fn compress_styledline_into<T: Bufferable>
     }
     nslines
 }
+// Start with u32 just like styled lines
 pub fn compress_polytriangle_into<T: Bufferable>
     (polytriangles: Vec<PolyTriangle<u32>>, mx: u64, my: u64, multi: u64) -> Vec<PolyTriangle<T>>
     where

@@ -7,7 +7,8 @@ use std::ops::{Add,Sub,Div,Mul};
 use bin_buffer::*;
 use std::convert::TryFrom;
 use ass::*;
-
+// Represents a collection of triangles expressed as vertices and indices.
+// Because we want to draw them.
 #[derive(Clone)]
 pub struct PolyTriangle<T>{
     pub vertices: Vec<(T,T)>,
@@ -15,7 +16,7 @@ pub struct PolyTriangle<T>{
     pub style: usize,
     pub bb: BB<T>,
 }
-
+// Standard stuff
 impl<T: Bufferable + Clone> Bufferable for PolyTriangle<T>{
     fn into_buffer(self, buf: &mut Buffer){
         self.vertices.into_buffer(buf);

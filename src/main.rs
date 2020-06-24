@@ -48,7 +48,7 @@ fn do_things() -> Option<()>{
       --mods (integer...) heightline modulo's
       "
     );
-
+    // Read in cli arguments
     let infiles = args.get_strings("inputfile");
     let outfile = args.get_string("output");
     let mode = args.get_string("mode");
@@ -301,7 +301,7 @@ fn do_things() -> Option<()>{
             println!("\t File: {}", file);
             print_xml_tag_count(&file);
         }
-    }else if mode == "geopolys"{
+    }else if mode == "geopolys"{// take the polygons from kml and chunkify them
         let mut styles = Vec::new();
         let mut counter = 0;
         let mut polyzs = Vec::new();
@@ -331,7 +331,7 @@ fn do_things() -> Option<()>{
         gbb.into_buffer(&mut infobuffer);
         cuts.into_buffer(&mut infobuffer);
         write_buffer("chunks.polyinfo", &infobuffer, &timer);
-    }else if mode == "geolines"{
+    }else if mode == "geolines"{// take the lines from kml and chunkify them
         let mut styles = Vec::new();
         let mut counter = 0;
         let mut lines = Vec::new();

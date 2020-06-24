@@ -95,6 +95,7 @@ pub fn check_tag_child(path: &str, parent: &str, child: &str) -> bool{
     }
     true
 }
+// check if certain tags are never empty
 pub fn check_nonempty_tag(path: &str, tag: &str) -> bool{
     let file = open_file!(path);
     let parser = EventReader::new(file);
@@ -189,6 +190,7 @@ pub fn kml_height(path: &str) -> VvP4{
     let coord_name = String::from("coordinates");
     let mut coor = false;
     let mut strings = Vec::new();
+    // collect the data first
     for e in parser{
         match e{
             Ok(XmlEvent::StartElement { name, .. }) => {
@@ -213,6 +215,7 @@ pub fn kml_height(path: &str) -> VvP4{
         }
     }
     println!("{}", strings.len());
+    // then we parse
     let mut vvp4 = Vec::new();
     for string in strings{
         vvp4.push(parse_coords(string));
@@ -223,6 +226,7 @@ pub fn kml_height(path: &str) -> VvP4{
 pub fn kml_geo(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize, logger: &mut Logger) -> Vec<(usize,(VvP4,VvP4))>{
     let file = open_file!(path);
     let parser = EventReader::new(file);
+    // just a lot of stuff we need to keep track and collect the data
     let mut colset = HashSet::new();
     let mut colmap = HashMap::new();
     let mut in_poly_style = false;
@@ -240,6 +244,7 @@ pub fn kml_geo(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize,
     let mut outers = Vec::new();
     let mut inners = Vec::new();
     let mut polygons = Vec::new();
+    // do the collecting
     for e in parser{
         match e{
             Ok(XmlEvent::StartElement { name, attributes, .. }) => {
@@ -308,6 +313,7 @@ pub fn kml_geo(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize,
             _ => {}
         }
     }
+    // parse the styles from the data
     for (id,colourstr,outline) in styles_raw{
         if colset.contains(&id) { continue; }
         colmap.insert(id.clone(), *counter);
@@ -326,6 +332,7 @@ pub fn kml_geo(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize,
         styles.push((outl,r,g,b));
         *counter += 1;
     }
+    // parse the polygons from the data
     let mut polys = Vec::new();
     for (sturl,outersraw,innersraw) in polygons{
         if &sturl == ""{
@@ -373,6 +380,7 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
     let mut in_line = false;
     let mut lines = Vec::new();
     let mut polygons = Vec::new();
+    // collect the data raw as strings first
     for e in parser{
         match e{
             Ok(XmlEvent::StartElement { name, attributes, .. }) => {
@@ -448,6 +456,7 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
             _ => {}
         }
     }
+    // parse the styles
     let mut skipmap = HashSet::new();
     for (id,colourstr,width,outline) in styles_raw{
         if colset.contains(&id) { continue; }
@@ -471,6 +480,7 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
         styles.push((width_int,r,g,b));
         *counter += 1;
     }
+    // parse the lines and link them with a style
     let mut res = Vec::new();
     for (sturl,rawlines) in polygons{
         let url = &sturl.chars().filter(|c| *c != '#').collect::<String>();
