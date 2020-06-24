@@ -1,7 +1,7 @@
 # shapefile-linter
 
-shapefile-linter is a program that can convert and lint shapefiles.
-The main feature is the conversion of shapefiles to custom binairy files.
+shapefile-linter is a program that can convert and lint shapefiles and kml files.
+The main feature is the conversion of shapefiles/kml to custom binairy files.
 The goal of these files is to compress specific types of shapefiles like geographic heightmaps to a
 denser file that we use in `uu-uce`.
 It can also do things like print information about a shapefile and lint a shapefile while compressing it.
@@ -19,13 +19,15 @@ It can be multiple files like this: `shapefile-linter data/a.shp data/b.shp`
 You can ofcourse use patterns supported by your shell, like `bash` or `zsh`.
 For example get all shapefiles from a directory: `shapefile-linter data/*.shp`.
 Or get all shapefiles that contain `al` in the name in all sub directories:
-`shapefile-linter data/*/*al*.shp`
+`shapefile-linter data/**/*al*.shp`
 
 ### output files
 
 Using the output flag you can provide the name of the output file. The standard output name is `outp`.
 Using `shapefile-linter somefile.shp --mode someNonExistantMode --output hello` we tell shapefile-linter
 that it should save the output as the file `hello`.
+This does not follow for commands that output chunks.
+They have fixed names as the uu-uce app expects certain files.
 
 ### ft
 
@@ -52,12 +54,25 @@ This does also work with kml, see the `ft` section.
 
 Chunkify takes a merged file from the command `mergeheight`.
 Works for shapefile and kml.
+You can give the amount of cuts with the cuts flag.
+N cuts mean you end up with N^2 chunks.
 Example: `shapefile-linter file.kml --mode chunkify --ft kml`.
+For more tuning, you can use the flags `cuts_multi`, `levels` and `mods`.
+cuts_multi will set the multiplier of the cuts. For example, when cuts is 2 and the multi is 4, each level the cuts will multiply by 4 creating the sequence `2,8,32,...`.
+Levels will set the amount of LOD levels it will create.
+Mods takes a list of levels numbers. In other words a list of N numbers where N is the levels parameter.
+This will set the heightline modulo of each level.
+Only heightlines with z levels in the set `{ z | z % modulo = 0 }` will be included at every LOD level.
 
 ### polygonz
 
 The command `shapefile-linter file.shp --mode polygonz` will take the shapefile and assume it is an shapefile
 containing only PolygonZ types. It will trow away the w coordinate and store compressed shapes into a custom file.
+
+### triangulate
+
+triangulate will take a shapefile, turn it into polygons and triangulate them.
+These triangles will be compressed and saved to disk.
 
 ### height
 
@@ -75,3 +90,20 @@ Example: `shapefile-linter file.xml --mode xmltree`
 
 Prints out every tag with its count.
 Example: `shapefile-linter file.xml --mode xmltags`
+
+### geopolymerge
+
+geopolymerge takes a list of kml files, merges them together, triangulates them, cuts them into chunks, compresses those chunks and then writes them out.
+You can give the amount of cuts with the cuts flag.
+N cuts mean you end up with N^2 chunks.
+Example: `shapefile-linter dir/**/*.kml --mode geopolymerge --cuts 8`
+
+### check-tag-child
+
+A debug check for XML files, takes a list of XML files and checks if a tag always has a child tag.
+Example: `shapefile-linter test.xml --mode check-tag-child --tag0 outer --tag1 inner`
+
+### check-nonempty-tag
+
+Takes a list of XML files and checks if a tag is always nonepty.
+Example: `shapefile-linter test.xml --mode check-nonempty-tag --tag0 testtag`

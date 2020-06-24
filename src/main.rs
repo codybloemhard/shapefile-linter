@@ -62,7 +62,7 @@ fn do_things() -> Option<()>{
 
     let mut logger = Logger::default();
 
-    println!("Shapefile processor...");
+    println!("Shapefile/KML processor...");
     let timer = Instant::now();
     // Take one file
     let get_only_path = ||{
@@ -301,7 +301,7 @@ fn do_things() -> Option<()>{
             println!("\t File: {}", file);
             print_xml_tag_count(&file);
         }
-    }else if mode == "geomerge"{
+    }else if mode == "geopolymerge"{
         let mut styles = Vec::new();
         let mut counter = 0;
         let mut polyzs = Vec::new();
