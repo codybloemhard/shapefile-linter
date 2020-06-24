@@ -442,7 +442,7 @@ where
             return None;
         }
 
-        let cur = remaining_polygon.get(cur_index).unwrap();
+        let cur = remaining_polygon.get(cur_index).expect("Critical triangulation unwrap failed nr. 0");
         if !cur.ear {
             cur_index = next_index_cyclic(&remaining_polygon, cur_index);
             continue
@@ -472,17 +472,17 @@ where
 
 fn next_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> &T{
     if let Some(y) = polygon.get_next_index(i){
-        polygon.get(y).unwrap()
+        polygon.get(y).expect("Critical triangulation unwrap failed nr. 1")
     }else{
-        polygon.front().unwrap()
+        polygon.front().expect("Critical triangulation unwrap failed nr. 2")
     }
 }
 
 fn prev_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> &T{
     if let Some(y) = polygon.get_previous_index(i){
-        polygon.get(y).unwrap()
+        polygon.get(y).expect("Critical triangulation unwrap failed nr. 3")
     }else{
-        polygon.back().unwrap()
+        polygon.back().expect("Critical triangulation unwrap failed nr. 4")
     }
 }
 
@@ -493,7 +493,7 @@ fn next_index_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> Index<T>{
     }else{
         //return the first index
         let mut indices = polygon.indices();
-        indices.next().unwrap()
+        indices.next().expect("Critical triangulation unwrap failed nr. 5")
     }
 }
 
@@ -504,7 +504,7 @@ fn prev_index_cyclic<T>(polygon: &VecList<T>, i: Index<T>) -> Index<T>{
     }else{
         //return the last index
         let indices = polygon.indices();
-        indices.last().unwrap()
+        indices.last().expect("Critical triangulation unwrap failed nr. 6")
     }
 }
 
@@ -515,7 +515,7 @@ where
 {
     let mut ear = false;
     let mut reflex = false;
-    let p = polygon.get(i).unwrap();
+    let p = polygon.get(i).expect("Critical triangulation unwrap failed nr. 7");
     if !p.reflex {
         ear = is_ear(polygon, i);
         //convex points will stay convex
@@ -529,7 +529,7 @@ where
         }
     }
 
-    let mut p_mut = polygon.get_mut(i).unwrap();
+    let mut p_mut = polygon.get_mut(i).expect("Critical triangulation unwrap failed nr. 8");
     p_mut.reflex = reflex;
     p_mut.ear = ear;
 }
@@ -541,8 +541,8 @@ where
 {
     let ax = prev_cyclic(polygon,i).point.0.into();
     let ay = prev_cyclic(polygon,i).point.1.into();
-    let bx = polygon.get(i).unwrap().point.0.into();
-    let by = polygon.get(i).unwrap().point.1.into();
+    let bx = polygon.get(i).expect("Critical triangulation unwrap failed nr. 9").point.0.into();
+    let by = polygon.get(i).expect("Critical triangulation unwrap failed nr. 10").point.1.into();
     let cx = next_cyclic(polygon,i).point.0.into();
     let cy = next_cyclic(polygon,i).point.1.into();
 
@@ -555,7 +555,7 @@ where
     T: Into<f64>
 {
     //an ear is a point of a triangle with no other points inside
-    let p = polygon.get(i).unwrap();
+    let p = polygon.get(i).expect("Critical triangulation unwrap failed nr. 11");
     if is_reflex(polygon,i) {return false}
     let p_prev = prev_cyclic(polygon,i);
     let p_next = next_cyclic(polygon,i);

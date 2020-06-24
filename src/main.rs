@@ -354,9 +354,6 @@ fn do_things() -> Option<()>{
             let filename = &format!("{}-{}.geolinechunk", x, y);
             write_buffer(filename, &buffer, &timer);
         }
-        // let infos = info_package(&slines);
-        // let buffer = slines.compress(infos, &mut logger);
-        // write_buffer("reeee", &buffer, &timer);
         let mut infobuffer = Vec::new();
         gbb.into_buffer(&mut infobuffer);
         cuts.into_buffer(&mut infobuffer);
