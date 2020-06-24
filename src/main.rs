@@ -301,7 +301,7 @@ fn do_things() -> Option<()>{
             println!("\t File: {}", file);
             print_xml_tag_count(&file);
         }
-    }else if mode == "geopolymerge"{
+    }else if mode == "geopolys"{
         let mut styles = Vec::new();
         let mut counter = 0;
         let mut polyzs = Vec::new();

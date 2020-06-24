@@ -7,23 +7,25 @@ offx: T,
 offy: T,
 offz: T,
 multi: T,
-boundingbox: ((T,T,T),(T,T,T))
+tsize: u8, // size of compression type in bytes
+boundingbox: ((u16,u16,u16),(u16,u16,u16))
 [T], // height modulo of every level
 }
 // Then there is a file for every chunk
 // The name of the files are i-x-y.chunk
 // For example on lod level 3, with x = 0 and y = 2: 3-0-2.chunk
+T: compression type
 {
-lod_level: T,
-x: T,
-y: T,
+lod_level: u64,
+x: u64,
+y: u64,
 chunk:
 [
     {
-        z: u16, //Height of this shape
-        bb0: (u16,u16,u16), //Min boundingbox
-        bb1: (u16,u16,u16), //Max boundingbox
-        points: [(u16,u16)], //All points
+        z: T, //Height of this shape
+        bb0: (T,T,T), //Min boundingbox
+        bb1: (T,T,T), //Max boundingbox
+        points: [(T,T)], //All points
     }
 ]
 }

@@ -1,0 +1,30 @@
+// chunks.geolineinfo
+{
+boundingbox: ((u32,u32,u32),(u32,u32,u32)),
+cuts: u8,
+}
+// Then there is a file for every chunk
+// The name of the files are x-y.geolinechunk
+// For example with x = 0 and y = 2: 3-0-2.geolinechunk
+T: compression type
+{
+mx: u64,
+my: u64,
+mz: u64,
+multi: u64,
+tsize: u8, // size of compression type in bytes
+bb: ((T,T,T),(T,T,T)),
+chunk:
+[
+    {
+        style: usize, //Height of this shape
+        bb0: (T,T,T), //Min boundingbox
+        bb1: (T,T,T), //Max boundingbox
+        points: [(T,T)], //All points
+    }
+]
+}
+// styles
+{
+styles: [(u8,u8,u8,u8)], // width, r, g, b
+}

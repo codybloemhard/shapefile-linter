@@ -1,0 +1,31 @@
+// chunks.polyinfo
+{
+boundingbox: ((u32,u32,u32),(u32,u32,u32)),
+cuts: u8,
+}
+// Then there is a file for every chunk
+// The name of the files are x-y.polychunk
+// For example with x = 0 and y = 2: 0-2.polychunk
+T: compression type
+{
+mx: u64,
+my: u64,
+mz: u64,
+multi: u64,
+tsize: u8, // size of compression type in bytes
+bb: ((T,T,T),(T,T,T)),
+chunk:
+[
+    {
+        points: [(T,T)], //All points
+        indices: [u16],
+        style: usize, //Height of this shape
+        bb0: (T,T,T), //Min boundingbox
+        bb1: (T,T,T), //Max boundingbox
+    }
+]
+}
+// styles
+{
+styles: [(u8,u8,u8,u8)], // has outline(0 or 1), r, g, b
+}

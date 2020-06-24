@@ -91,12 +91,17 @@ Example: `shapefile-linter file.xml --mode xmltree`
 Prints out every tag with its count.
 Example: `shapefile-linter file.xml --mode xmltags`
 
-### geopolymerge
+### geopolys
 
-geopolymerge takes a list of kml files, merges them together, triangulates them, cuts them into chunks, compresses those chunks and then writes them out.
+geopolys takes a list of kml files, merges them together, extract the polygons, triangulates them, cuts them into chunks, compresses those chunks and then writes them out.
 You can give the amount of cuts with the cuts flag.
 N cuts mean you end up with N^2 chunks.
-Example: `shapefile-linter dir/**/*.kml --mode geopolymerge --cuts 8`
+Example: `shapefile-linter dir/**/*.kml --mode geopolys --cuts 8`
+
+### geolines
+
+geolines will take a list of kml files, merges them together, extract the lines, cuts them into chunks, match the styles, compress them and writes them out.
+Example: `shapefile-linter lines.kml --mode geolines --cuts 8`
 
 ### check-tag-child
 
