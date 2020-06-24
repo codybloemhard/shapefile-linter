@@ -237,9 +237,7 @@ pub fn optimize_lines<T>(mut old: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     }
 
     let mut independents = Vec::new();
-    loop {
-        let shape = if let Some(s) = old.pop() { s }
-        else { break; };
+    while let Some(shape) = old.pop() {
         let other = find_other(&shape, &mut old);
         if let Some((fres,oshape)) = other{ // if we find a match, merge and put it back
             let news = merge(fres,shape,oshape);
@@ -319,7 +317,7 @@ pub fn cut_styled<T>(cuts: u8, gbb: BB<T>, shapes: &[StyledLine<T>]) -> ChunksSt
                         bb: T::start_box(),
                     };
                     newshape.stretch_bb(); // calculate the right boundingbox
-                    let vpos: usize = (old_cy * cuts_usize + old_cx);
+                    let vpos: usize = old_cy * cuts_usize + old_cx;
                     grid[vpos].push(newshape);
                     points = vec![last,*xy]; // start a new collection for the new chunk
                     old_cx = new_cx;
@@ -333,7 +331,7 @@ pub fn cut_styled<T>(cuts: u8, gbb: BB<T>, shapes: &[StyledLine<T>]) -> ChunksSt
                 bb: T::start_box(),
             }; // round up and push the last chunk
             newshape.stretch_bb();
-            let vpos: usize = (old_cy * cuts_usize + old_cx);
+            let vpos: usize = old_cy * cuts_usize + old_cx;
             grid[vpos].push(newshape);
         }
     }

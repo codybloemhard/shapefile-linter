@@ -8,7 +8,7 @@ use hex::FromHex;
 use std::str::FromStr;
 // right amount of spaces for x indentations
 fn indent(size: usize) -> String{
-    const INDENT: &'static str = "  ";
+    const INDENT: &str = "  ";
     (0..size).map(|_| INDENT).fold(String::with_capacity(size*INDENT.len()), |r,s| r + s)
 }
 // clean out everything between {} inclusive, and to lowercase
@@ -72,12 +72,12 @@ pub fn check_tag_child(path: &str, parent: &str, child: &str) -> bool{
         match e{
             Ok(XmlEvent::StartElement { name, .. }) => {
                 let cleaned = clean_name(name.to_string());
-                if &cleaned == parent{ inside = true; seen = false; }
-                else if &cleaned == child && inside { seen = true; }
+                if cleaned == parent{ inside = true; seen = false; }
+                else if cleaned == child && inside { seen = true; }
             }
             Ok(XmlEvent::EndElement { name, .. }) => {
                 let cleaned = clean_name(name.to_string());
-                if &cleaned == parent{
+                if cleaned == parent{
                     if !inside { panic!("Found end tag of parent with seeing the start tag, somehow..."); }
                     if !seen{
                         return false;
@@ -104,7 +104,7 @@ pub fn check_nonempty_tag(path: &str, tag: &str) -> bool{
         match e{
             Ok(XmlEvent::StartElement { name, .. }) => {
                 let nname = clean_name(name.to_string());
-                if &nname == tag{
+                if nname == tag{
                     in_tag = true;
                 }
             }
@@ -115,7 +115,7 @@ pub fn check_nonempty_tag(path: &str, tag: &str) -> bool{
             }
             Ok(XmlEvent::EndElement{ name }) => {
                 let nname = clean_name(name.to_string());
-                if &nname == tag{
+                if nname == tag{
                     if &inside == "" { return false; }
                     in_tag = false;
                     inside = String::new();
@@ -410,9 +410,7 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
                     width = content;
                 }else if in_style_url{
                     style_url = content;
-                }else if in_coordinates && (in_outer || in_inner){
-                    lines.push(content);
-                }else if in_coordinates && in_line{
+                }else if in_coordinates && (in_outer || in_inner || in_line){
                     lines.push(content);
                 }else if in_outline{
                     outline = content.chars().next().expect("Outline content should have at least on char!");
@@ -435,11 +433,7 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
                 else if &nname == "coordinates" { in_coordinates = false; }
                 else if &nname == "outline" { in_outline = false; }
                 else if &nname == "linestyle" { in_line_style = false }
-                else if &nname == "polygon" {
-                    polygons.push((style_url.clone(),lines));
-                    lines = Vec::new();
-                }
-                else if &nname == "linestring"{
+                else if &nname == "polygon" || &nname == "linestring"{
                     polygons.push((style_url.clone(),lines));
                     lines = Vec::new();
                 }

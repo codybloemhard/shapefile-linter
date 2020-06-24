@@ -439,8 +439,8 @@ pub fn int_cast(pzf64: PolygonZ<f64>) -> PolygonZ::<u32>
     let cast = |(x,y,z)| (x as u32, y as u32, z as u32);
     let ((a,b,c),(d,e,f)) = pzf64.bb;
     PolygonZ::<u32>{
-        inners: pzf64.inners.into_iter().map(|v| v.into_iter().map(|x| cast(x)).collect::<Vec<_>>()).collect::<Vec<_>>(),
-        outers: pzf64.outers.into_iter().map(|v| v.into_iter().map(|x| cast(x)).collect::<Vec<_>>()).collect::<Vec<_>>(),
+        inners: pzf64.inners.into_iter().map(|v| v.into_iter().map(cast).collect::<Vec<_>>()).collect::<Vec<_>>(),
+        outers: pzf64.outers.into_iter().map(|v| v.into_iter().map(cast).collect::<Vec<_>>()).collect::<Vec<_>>(),
         bb: ((a as u32, b as u32, c as u32),(d as u32, e as u32, f as u32)),
         style: pzf64.style,
     }

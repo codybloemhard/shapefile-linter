@@ -92,7 +92,7 @@ fn do_things() -> Option<()>{
     };
     let write_buffer = |filename: &str, buffer: &Buffer, timer: &std::time::Instant|{
         let ok = buffer_write_file(&Path::new(filename), buffer);
-        println!("Writing file \"{}\", went ok?: {}, {} ms", "styles", ok, timer.elapsed().as_millis());
+        println!("Writing file \"{}\", went ok?: {}, {} ms", filename, ok, timer.elapsed().as_millis());
     };
     // Compress and bufferize and write collection.
     macro_rules! compress_and_write{
@@ -310,7 +310,7 @@ fn do_things() -> Option<()>{
             let stpolyzs: Vec<_> = polys.into_iter().map(|(sty,poly)| PolygonZ::from(poly,sty)).collect();
             polyzs.extend(stpolyzs);
         }
-        let mut polyzs = polyzs.into_iter().map(|p| int_cast(p)).collect::<Vec<_>>();
+        let mut polyzs = polyzs.into_iter().map(int_cast).collect::<Vec<_>>();
         polyzs.iter_mut().for_each(|p| p.stretch_bb());
         println!("There are {} polygons!", polyzs.len());
         let gbb = get_global_bb(&polyzs);

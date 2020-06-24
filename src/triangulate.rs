@@ -139,8 +139,8 @@ where
             res.push(PolyTriangle{
                 vertices: p2vertices,
                 indices: cur_indices,
-                style: style,
-                bb: bb,
+                style,
+                bb,
             });
         }
     }
@@ -204,7 +204,7 @@ where
     }
 }
 
-fn is_clockwise<T>(ring: &Vec<P3<T>>) -> bool
+fn is_clockwise<T>(ring: &[P3<T>]) -> bool
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy,
     T: Into<f64>
@@ -218,7 +218,7 @@ where
         let y1 = p1.1.into();
         sum += (x1-x0)*(y1+y0);
     }
-    return sum > 0.0;
+    sum > 0.0
 }
 
 fn group_polygons<T>(polygon: PolygonZ<T>, skipped: &mut i64) -> Vec<(Vec<P3<T>>, Vvec<P3<T>>)>
@@ -620,8 +620,8 @@ where
         //if the ray exactly hits the edge of the line (t == 0 or t == 1),
         //only count it as a hit if it's on the bottom of the line
         //this counters 'sawteeth' interfering with the number of intersections
-        if y2-y1 < 0.0 && t == 1.0 ||
-            y2-y1 > 0.0 && t == 0.0 {continue}
+        if y2-y1 < 0.0 && (t - 1.0).abs() < 0.001 ||
+            y2-y1 > 0.0 && t.abs() < 0.001 {continue}
 
         let x = x1 + t * (x2 - x1);
         if x<p0 {continue}
