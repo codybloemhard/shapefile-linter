@@ -347,7 +347,7 @@ pub fn cut_styled<T>(cuts: u8, gbb: BB<T>, shapes: &[StyledLine<T>]) -> ChunksSt
 
 pub type ChunkPoly<T> = (u64,u64,Vec<PolyTriangle<T>>);
 pub type ChunksPoly<T> = Vec<ChunkPoly<T>>;
-
+// Cut triangles into chunks
 pub fn chunkify_polytriangles<T>(cuts: u8, gbb: BB<T>, polygons: Vec<PolyTriangle<T>>) -> ChunksPoly<T>
     where
         T: Clone + Copy + Default + PartialEq + PartialOrd + Eq + std::hash::Hash,
@@ -376,18 +376,21 @@ pub fn chunkify_polytriangles<T>(cuts: u8, gbb: BB<T>, polygons: Vec<PolyTriangl
             let va = polygon.vertices[ia as usize];
             let vb = polygon.vertices[ib as usize];
             let vc = polygon.vertices[ic as usize];
+            // Check in which cells the vertices fall
             let mut cells = vec![
                 xy_to_chunk(va, cinf),
                 xy_to_chunk(vb, cinf),
                 xy_to_chunk(vc, cinf),
             ];
             cells.dedup();
+            // We add the vertex to each cell it falls into
             for (cx,cy) in cells{
                 let (mut vertices,mut indices,mut indexmap) = if let Some((v,id,im)) = localgrid.remove(&(cx,cy)){
                     (v,id,im)
                 }else{
                     (Vec::new(),Vec::new(),HashMap::new())
                 };
+                // We must re-index each vertex that is added
                 let mut localize = |vx|{
                     if let Some(ind) = indexmap.get(&vx){
                         indices.push(*ind as u16);
@@ -415,6 +418,7 @@ pub fn chunkify_polytriangles<T>(cuts: u8, gbb: BB<T>, polygons: Vec<PolyTriangl
             grid[cy * cuts_usize + cx].push(pt);
         }
     }
+    // Collect all the chunks into a vector
     let cuts_u64 = cuts_usize as u64;
     let mut chunks = Vec::new();
     for (i,vec) in grid.into_iter().enumerate(){

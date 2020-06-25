@@ -179,7 +179,7 @@ impl<T> UpdateableBB for ShapeZ<T>
         self.set_bounding_box(bb);
     }
 }
-// TODO?
+// These ones do not use UpdateableBB but we need them for generics
 impl<T> UpdateableBB for PolygonZ<T>
     where
     T: BoundingType + MinMax + Copy,
@@ -305,14 +305,15 @@ impl<'a, T> IntoIterator for &'a ShapeZ<T>{
         }
     }
 }
-// ShapeZ: a height line, all it's points are on the same height
+// Styles line is a line with a style
 #[derive(Clone)]
 pub struct StyledLine<T>{
     pub points: Vec<P2<T>>,
     pub style: usize,
     pub bb: BB<T>,
 }
-
+// Make Styled Lines from raw data but cast to int. We need this as some of the generics wont play
+// nice with floats.
 impl<T> StyledLine<T>{
     pub fn from_as_int((style,ps): (usize, Vvec<P2<f64>>), col: &mut Vec<StyledLine<u32>>) {
         for l in ps.into_iter().map(|v| v.into_iter().map(|(x,y)| (x as u32, y as u32)).collect::<Vec<_>>()){
@@ -326,7 +327,7 @@ impl<T> StyledLine<T>{
         }
     }
 }
-// We want to export and import ShapeZ as buffer
+// We want to export and import StyledLine as buffer
 impl<T: Bufferable + Clone> Bufferable for StyledLine<T>{
     fn into_buffer(self, buf: &mut Buffer){
         self.style.into_buffer(buf);
@@ -372,14 +373,13 @@ impl<T> HasBB<T> for StyledLine<T>{
     }
 }
 // Again we need a state to iterate over the collection
-// This one is more complicated
-// We have to iterate over many nested vectors
-// As if it was one long one
 pub struct StyledLineIter<'a,T>{
     pub current: usize,
     pub sline: &'a StyledLine<T>,
 }
-// Here we define how we actually loop over seperate nested vectors
+// Standard iterator. Multiple of these boys have iterators like this and it should be refactored.
+// Something like that it has a point collection and that one yield an iterator and only define
+// iterators for the point collections, removing doubly implemented iterators.
 impl<'a, T> Iterator for StyledLineIter<'a, T>{
     type Item = &'a P2<T>;
     fn next(&mut self) -> Option<Self::Item>{
@@ -391,6 +391,7 @@ impl<'a, T> Iterator for StyledLineIter<'a, T>{
         Option::Some(&self.sline.points[cur])
     }
 }
+// Make possible to get the iterator
 impl<'a, T> IntoIterator for &'a StyledLine<T>{
     type Item = &'a P2<T>;
     type IntoIter = StyledLineIter<'a, T>;
@@ -434,6 +435,8 @@ impl<T: BoundingType + Copy> PolygonZ<T>{
         }
     }
 }
+// Not all generic functions like floats so we have a cast function that transfroms it into a int
+// collection. This is kind of ugly and would like some refactoring.
 pub fn int_cast(pzf64: PolygonZ<f64>) -> PolygonZ::<u32>
 {
     let cast = |(x,y,z)| (x as u32, y as u32, z as u32);
@@ -478,25 +481,8 @@ impl<T: Bufferable + Clone> Bufferable for PolygonZ<T>{
     fn from_buffer(buf: &mut ReadBuffer) -> Option<Self>{
         let bb0 = <P3<T>>::from_buffer(buf)?;
         let bb1 = <P3<T>>::from_buffer(buf)?;
-        let mut read_part = ||{
-            let l = if let Some(wlen) = u64::from_buffer(buf){ wlen }
-            else { return Option::None; };
-            let mut col = Vec::new();
-            for _ in 0..l{
-                let mut vec = Vec::new();
-                let l1 = if let Some(wlen) = u64::from_buffer(buf){ wlen }
-                else { return Option::None; };
-                for _ in 0..l1{
-                    let p = if let Some(wp) = <P3<T>>::from_buffer(buf){ wp }
-                    else { return Option::None; };
-                    vec.push(p);
-                }
-                col.push(vec);
-            }
-            Option::Some(col)
-        };
-        let outers = read_part()?;
-        let inners = read_part()?;
+        let outers = Vvec::<P3<T>>::from_buffer(buf)?;
+        let inners = Vvec::<P3<T>>::from_buffer(buf)?;
         let style = usize::from_buffer(buf)?;
         Option::Some(Self{
             outers,
@@ -574,11 +560,7 @@ impl<'a, T> IntoIterator for &'a PolygonZ<T>{
         }
     }
 }
-// Again we need a state to iterate over the collection
-pub struct PolyTriangleIter<'a,T>{
-    pub current: usize,
-    pub poly: &'a PolyTriangle<T>,
-}
+// Same simple implementations for PolyTriangle.
 impl<T> CustomShape for PolyTriangle<T>{
     fn points_len(&self) -> usize{
         self.vertices.len()
@@ -592,6 +574,11 @@ impl<T> HasBB<T> for PolyTriangle<T>{
     fn set_bounding_box(&mut self, bb: BB<T>){
         self.bb = bb
     }
+}
+// Again we need a state to iterate over the collection
+pub struct PolyTriangleIter<'a,T>{
+    pub current: usize,
+    pub poly: &'a PolyTriangle<T>,
 }
 impl<'a, T> Iterator for PolyTriangleIter<'a, T>{
     type Item = &'a P2<T>;
