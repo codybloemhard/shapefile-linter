@@ -670,3 +670,8 @@ pub fn split(shapes: Vec<Shape>, logger: &mut Logger) -> Splitted{
     let mpointzs = convert_multipoint(mpointzs, tp4);
     (points,pointms,pointzs,plines,plinems,plinezs,mpoints,mpointms,mpointzs,polys,polyms,polyzs)
 }
+
+/* This program has been developed by students from the bachelor Computer
+# Science at Utrecht University within the Software Project course. ©️ Copyright
+# Utrecht University (Department of Information and Computing Sciences)*/
+
