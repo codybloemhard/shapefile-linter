@@ -187,10 +187,10 @@ fn do_things() -> Option<()>{
         let min = diffs.iter().fold(std::f64::MAX, |m,x| m.min(*x));
         let max = diffs.iter().fold(std::f64::MIN, |m,x| m.max(*x));
         let mut diffs: Vec<u64> = diffs.iter().map(|x| *x as u64).collect::<Vec<u64>>();
-        diffs.sort();
+        diffs.sort_unstable();
         let median = diffs[diffs.len() / 2];
-        lens.sort();
-        sames.sort();
+        lens.sort_unstable();
+        sames.sort_unstable();
         let lens_median = lens[lens.len() / 2];
         let sames_median = sames[sames.len() / 2];
         println!("Differences between min and max in lines, summary:");

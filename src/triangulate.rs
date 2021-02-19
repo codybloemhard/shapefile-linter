@@ -336,7 +336,7 @@ where
 
             if y2-y1 == 0.0 {continue}
             let t: f64 = (y3 - y1) / (y2 - y1);
-            if t < 0.0 || t > 1.0 {continue}
+            if !(0.0..=1.0).contains(&t) {continue}
 
             let x: f64 = x1 + t * (x2 - x1);
             let cur_dis: f64 = x - x3;
@@ -594,7 +594,7 @@ where
 
     //epsilon is needed because of how inner and outer polygons are merged because
     //there will be two exactly equal lines in the polygon, only in reversed order
-    aa >= 0.0 && aa <= 1.0 && bb >= 0.0 && bb <= 1.0 && cc >= 0.0 && cc <= 1.0
+    (0.0..=1.0).contains(&aa) && bb >= 0.0 && bb <= 1.0 && cc >= 0.0 && cc <= 1.0
 }
 
 
@@ -616,7 +616,7 @@ where
 
         if y2-y1 == 0.0 {continue}
         let t = (p1 - y1) / (y2 - y1);
-        if t < 0.0 || t > 1.0 {continue}
+        if !(0.0..=1.0).contains(&t) {continue}
 
         //if the ray exactly hits the edge of the line (t == 0 or t == 1),
         //only count it as a hit if it's on the bottom of the line

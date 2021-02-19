@@ -117,7 +117,7 @@ pub fn check_nonempty_tag(path: &str, tag: &str) -> bool{
             Ok(XmlEvent::EndElement{ name }) => {
                 let nname = clean_name(name.to_string());
                 if nname == tag{
-                    if &inside == "" { return false; }
+                    if inside.is_empty() { return false; }
                     in_tag = false;
                     inside = String::new();
                 }
@@ -335,7 +335,7 @@ pub fn kml_geo(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize,
     // parse the polygons from the data
     let mut polys = Vec::new();
     for (sturl,outersraw,innersraw) in polygons{
-        if &sturl == ""{
+        if sturl.is_empty(){
             logger.log(Issue::EmptyStyleId);
             continue;
         }
@@ -485,7 +485,7 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
     for (sturl,rawlines) in polygons{
         let url = &sturl.chars().filter(|c| *c != '#').collect::<String>();
         if skipmap.contains(url){ continue; }
-        if url == ""{
+        if url.is_empty(){
             logger.log(Issue::EmptyStyleId);
             continue;
         }

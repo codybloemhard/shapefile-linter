@@ -238,18 +238,13 @@ impl<T: Bufferable + Clone> Bufferable for ShapeZ<T>{
     }
 
     fn from_buffer(buf: &mut ReadBuffer) -> Option<Self>{
-        let z = if let Some(wz) = T::from_buffer(buf){ wz }
-        else { return Option::None; };
-        let bb0 = if let Some(wbb0) = <P3<T>>::from_buffer(buf){ wbb0 }
-        else { return Option::None; };
-        let bb1 = if let Some(wbb1) = <P3<T>>::from_buffer(buf){ wbb1 }
-        else { return Option::None; };
-        let len = if let Some(wlen) = u64::from_buffer(buf){ wlen }
-        else { return Option::None; };
+        let z = T::from_buffer(buf)?;
+        let bb0 = <P3<T>>::from_buffer(buf)?;
+        let bb1 = <P3<T>>::from_buffer(buf)?;
+        let len = u64::from_buffer(buf)?;
         let mut vec = Vec::new();
         for _ in 0..len{
-            let p = if let Some(wp) = <P2<T>>::from_buffer(buf){ wp }
-            else { return Option::None; };
+            let p = <P2<T>>::from_buffer(buf)?;
             vec.push(p);
         }
         Option::Some(Self{
@@ -341,14 +336,10 @@ impl<T: Bufferable + Clone> Bufferable for StyledLine<T>{
     }
 
     fn from_buffer(buf: &mut ReadBuffer) -> Option<Self>{
-        let style = if let Some(ws) = usize::from_buffer(buf){ ws }
-        else { return Option::None; };
-        let bb0 = if let Some(wbb0) = <P3<T>>::from_buffer(buf){ wbb0 }
-        else { return Option::None; };
-        let bb1 = if let Some(wbb1) = <P3<T>>::from_buffer(buf){ wbb1 }
-        else { return Option::None; };
-        let vec = if let Some(wp) = Vec::<P2<T>>::from_buffer(buf){ wp }
-        else { return Option::None; };
+        let style = usize::from_buffer(buf)?;
+        let bb0 = <P3<T>>::from_buffer(buf)?;
+        let bb1 = <P3<T>>::from_buffer(buf)?;
+        let vec = Vec::<P2<T>>::from_buffer(buf)?;
         Option::Some(Self{
             points: vec,
             style,

@@ -22,3 +22,4 @@ styles
 **/*.geolinechunk
 **/*.geolineinfo
 **/*.geolinestyles
+*.kml
