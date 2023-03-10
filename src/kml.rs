@@ -37,7 +37,7 @@ macro_rules! open_file{
             ffile
         }else{
             panic!("Could not open file: {}", $path);
-        };
+        }
     };
 }
 // print a indented tree of opening xml tags

@@ -91,7 +91,7 @@ fn do_things() -> Option<()>{
         read_single_file(infiles[0].clone())
     };
     let write_buffer = |filename: &str, buffer: &Buffer, timer: &std::time::Instant|{
-        let ok = buffer_write_file(&Path::new(filename), buffer);
+        let ok = buffer_write_file(Path::new(filename), buffer);
         println!("Writing file \"{}\", went ok?: {}, {} ms", filename, ok, timer.elapsed().as_millis());
     };
     // Compress and bufferize and write collection.
@@ -119,7 +119,7 @@ fn do_things() -> Option<()>{
                 println!("Unknown filetype specified!");
                 logger.report();
                 return None;
-            };
+            }
         }
     }
     if mode == "shapeinfo"{// Just print info about shapefile content.
@@ -203,7 +203,7 @@ fn do_things() -> Option<()>{
     }else if mode == "chunkify"{// Take one compressed height file and build chunks from it.
         let string_path = &get_only_path()?;
         let path = std::path::Path::new(string_path);
-        let mut buffer = ReadBuffer::from_raw(buffer_read_file(&path)?);
+        let mut buffer = ReadBuffer::from_raw(buffer_read_file(path)?);
         let mx = u64::from_buffer(&mut buffer)?;
         let my = u64::from_buffer(&mut buffer)?;
         let mz = u64::from_buffer(&mut buffer)?;
@@ -265,7 +265,7 @@ fn do_things() -> Option<()>{
         bmin.into_buffer(&mut info_buffer);
         bmax.into_buffer(&mut info_buffer);
         mods.into_buffer(&mut info_buffer);
-        let ok = buffer_write_file(&Path::new("chunks.info"), &info_buffer);
+        let ok = buffer_write_file(Path::new("chunks.info"), &info_buffer);
         println!("Writing file \"chunks.info\" ok?: {}", ok);
     }else if mode == "polygonz"{// Take shapefile and compress the polygonZ's
         let shapes = read_only_file()?;

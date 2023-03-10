@@ -51,45 +51,44 @@ struct PolyPoint<T>{
 }
 
 pub fn test(){
-    let mut polyzs = Vec::new();
-
-    polyzs.push(PolygonZ{
-        inners: vec![
-            vec![
-                (9.0,2.0,0.0),
-                (9.0,8.0,0.0),
-                (5.0,8.0,0.0),
-                (5.0,2.0,0.0),
+    let polyzs = vec![
+        PolygonZ{
+            inners: vec![
+                vec![
+                    (9.0,2.0,0.0),
+                    (9.0,8.0,0.0),
+                    (5.0,8.0,0.0),
+                    (5.0,2.0,0.0),
+                ],
+                vec![
+                    (3.0,4.0,0.0),
+                    (2.5,5.0,0.0),
+                    (2.0,4.0,0.0),
+                ],
+                vec![
+                    (7.5,4.0,0.0),
+                    (7.0,5.0,0.0),
+                    (6.5,4.0,0.0),
+                ]
             ],
-            vec![
-                (3.0,4.0,0.0),
-                (2.5,5.0,0.0),
-                (2.0,4.0,0.0),
+            outers: vec![
+                vec![
+                    (6.0,3.0,0.0),
+                    (6.0,7.0,0.0),
+                    (8.0,7.0,0.0),
+                    (8.0,3.0,0.0)
+                ],
+                vec![
+                    (0.0,0.0,0.0),
+                    (0.0,10.0,0.0),
+                    (10.0,10.0,0.0),
+                    (10.0,0.0,0.0)
+                ]
             ],
-            vec![
-                (7.5,4.0,0.0),
-                (7.0,5.0,0.0),
-                (6.5,4.0,0.0),
-            ]
-        ],
-        outers: vec![
-            vec![
-                (6.0,3.0,0.0),
-                (6.0,7.0,0.0),
-                (8.0,7.0,0.0),
-                (8.0,3.0,0.0)
-            ],
-            vec![
-                (0.0,0.0,0.0),
-                (0.0,10.0,0.0),
-                (10.0,10.0,0.0),
-                (10.0,0.0,0.0)
-            ]
-        ],
-        bb: ((0.0,0.0,0.0),(0.0,0.0,0.0)),
-        style: 0,
-    });
-
+            bb: ((0.0,0.0,0.0),(0.0,0.0,0.0)),
+            style: 0,
+        }
+    ];
 
     let mut logger = Logger::default();
     let res = triangulate(polyzs, &mut logger);
@@ -194,12 +193,12 @@ where
     T: Into<f64>
 {
     for outer in &mut polygon.outers{
-        if !is_clockwise(&outer){
+        if !is_clockwise(outer){
             outer.reverse();
         }
     }
     for inner in &mut polygon.inners{
-        if is_clockwise(&inner){
+        if is_clockwise(inner){
             inner.reverse();
         }
     }
@@ -438,7 +437,7 @@ where
         step+=1;
 
         if step > vertices.len(){
-            if logger.debug_print { print_poly_matplotlib(&vertices, "vertices".to_string()); }
+            if logger.debug_print { print_poly_matplotlib(vertices, "vertices".to_string()); }
             logger.log(Issue::NoEarsLeft);
             return None;
         }
@@ -594,7 +593,7 @@ where
 
     //epsilon is needed because of how inner and outer polygons are merged because
     //there will be two exactly equal lines in the polygon, only in reversed order
-    (0.0..=1.0).contains(&aa) && bb >= 0.0 && bb <= 1.0 && cc >= 0.0 && cc <= 1.0
+    (0.0..=1.0).contains(&aa) && (0.0..=1.0).contains(&bb) && (0.0..1.0).contains(&cc)
 }
 
 

@@ -622,7 +622,8 @@ pub fn split(shapes: Vec<Shape>, logger: &mut Logger) -> Splitted{
     {
         let mut vo: Vvec<P> = Vec::new();
         let mut vi: Vvec<P> = Vec::new();
-        let convert_poly = &|s: &Vec<PT>, d: &mut Vvec<P>| { d.push(s.iter().map(|p| conv(p)).collect()); };
+        let convert_poly =
+            &|s: &Vec<PT>, d: &mut Vvec<P>| { d.push(s.iter().map(conv).collect()); };
         pg.into_inner().iter().for_each(|x| match x {
             PolygonRing::Outer(vec) => { convert_poly(vec, &mut vo); },
             PolygonRing::Inner(vec) => { convert_poly(vec, &mut vi); },
@@ -631,10 +632,10 @@ pub fn split(shapes: Vec<Shape>, logger: &mut Logger) -> Splitted{
     }
     // wow, much map, much iter, much collect
     fn convert_polyline<T,P>(pl: GenericPolyline<T>, dst: &mut Vvec<P>, cv: fn(&T) -> P) {
-        pl.into_inner().iter().for_each(|x| dst.push(x.iter().map(|p| cv(p)).collect()));
+        pl.into_inner().iter().for_each(|x| dst.push(x.iter().map(cv).collect()));
     }
     fn convert_multipoint<T,P>(src: Vec<Vec<T>>, cv: fn(&T) -> P) -> Vvec<P>{
-        src.iter().map(|x| x.iter().map(|p| cv(p)).collect()).collect()
+        src.iter().map(|x| x.iter().map(cv).collect()).collect()
     }
     for shape in shapes{
         match shape{

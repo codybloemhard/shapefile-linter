@@ -21,7 +21,7 @@ pub fn info_package<'a,S: CustomShape,T>(shapes: &'a [S]) -> (u64,u64,u64,u64,Co
     println!("total: {}, repeated: {}", counts.0, counts.1);
     let (range,target) = target_compression_type(ranges);
     let (multi,usage) = target_multiplier(range,target);
-    println!("target {} with multiplier {} using {} of range", target.to_string(), multi, usage);
+    println!("target {} with multiplier {} using {} of range", target, multi, usage);
     (mx,my,mz,multi,target)
 }
 // calculate the ranges and offsets from the values of the collection

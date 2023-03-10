@@ -169,7 +169,7 @@ pub fn optimize_lines<T>(mut old: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
         T: Copy + Eq + Default + MinMax,
 {
     type Fl<T> = ((T,T),(T,T));
-    enum Fres { FF, FL, LF, LL };
+    enum Fres { FF, FL, LF, LL }
     // just get first and last points
     fn get_fl<T: Copy>(shape: &ShapeZ<T>) -> Fl<T>{
         let first = shape.points[0];
