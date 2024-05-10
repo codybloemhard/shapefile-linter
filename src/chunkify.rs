@@ -1,10 +1,17 @@
-use crate::data::{ShapeZ,StyledLine,Vvec,BB,MinMax,HasBB,CustomShape,BoundingType,StretchableBB};
-use crate::logger::*;
-use crate::triangulate::PolyTriangle;
-use std::ops::{Div,Add,Mul,Sub};
-use std::borrow::Borrow;
-use std::collections::HashMap;
+use crate::{
+    data::{ ShapeZ, StyledLine, Vvec, BB, MinMax, HasBB, CustomShape, BoundingType, StretchableBB},
+    logger::*,
+    triangulate::PolyTriangle,
+};
+
+use std::{
+    ops::{ Div, Add, Mul, Sub },
+    borrow::Borrow,
+    collections::HashMap,
+};
+
 use ass::*;
+
 // Returns true if inner is completely inside outer, else false
 pub fn bb_in_bb_xy<T>(outer: &BB<T>, inner: &BB<T>) -> bool
     where
@@ -18,6 +25,7 @@ pub fn bb_in_bb_xy<T>(outer: &BB<T>, inner: &BB<T>) -> bool
 
 pub type ChunkLine<T> = (u64,u64,Vec<ShapeZ<T>>);
 pub type ChunksLine<T> = Vec<ChunkLine<T>>;
+
 // take shapes, a global boundingbox and the amount of cuts to do over each axis
 // cuts the shapes into a scales regular grid
 pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) -> ChunksLine<T>
@@ -106,6 +114,7 @@ pub fn cut<T>(cuts: u64, gbb: BB<T>, shapes: &[ShapeZ<T>], logger: &mut Logger) 
     }
     chunks
 }
+
 // true if inner is completely outside outer, else false
 pub fn bb_out_bb_xy<T>(outer: &BB<T>, inner: &BB<T>) -> bool
     where
@@ -114,6 +123,7 @@ pub fn bb_out_bb_xy<T>(outer: &BB<T>, inner: &BB<T>) -> bool
     ((outer.0).0 > (inner.1).0 || (outer.1).0 < (inner.0).0) &&
     ((outer.0).1 > (inner.1).1 || (outer.1).1 < (inner.0).1)
 }
+
 // remove heightlines that are not dividable by the modulo
 // this to have less points and make the map more readable
 pub fn pick_heights<T>(modulo: u64, chunk:Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
@@ -130,6 +140,7 @@ pub fn pick_heights<T>(modulo: u64, chunk:Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     }
     filtered
 }
+
 // Simplify the lines by just taking out every n point
 pub fn pick_points<T>(max: usize, chunk: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     where
@@ -160,6 +171,7 @@ pub fn pick_points<T>(max: usize, chunk: Vec<ShapeZ<T>>) -> Vec<ShapeZ<T>>
     }
     nchunk
 }
+
 // Merge lines with the same start or end point
 // Will result in less lines and less points
 // Will increase drawing performance if you have lots of lines with not so much points
@@ -259,6 +271,7 @@ fn xy_to_chunk<T>((x,y): (T,T), (csizex,csizey,offx,offy): (T,T,T,T)) -> (usize,
 
 pub type ChunkStyledLine<T> = (u64,u64,Vec<StyledLine<T>>);
 pub type ChunksStyledLine<T> = Vec<ChunkStyledLine<T>>;
+
 // take shapes, a global boundingbox and the amount of cuts to do over each axis
 // cuts the shapes into a scales regular grid
 pub fn cut_styled<T>(cuts: u8, gbb: BB<T>, shapes: &[StyledLine<T>]) -> ChunksStyledLine<T>
@@ -347,6 +360,7 @@ pub fn cut_styled<T>(cuts: u8, gbb: BB<T>, shapes: &[StyledLine<T>]) -> ChunksSt
 
 pub type ChunkPoly<T> = (u64,u64,Vec<PolyTriangle<T>>);
 pub type ChunksPoly<T> = Vec<ChunkPoly<T>>;
+
 // Cut triangles into chunks
 pub fn chunkify_polytriangles<T>(cuts: u8, gbb: BB<T>, polygons: Vec<PolyTriangle<T>>) -> ChunksPoly<T>
     where

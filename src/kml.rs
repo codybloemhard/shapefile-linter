@@ -1,16 +1,24 @@
-use std::fs::File;
-use std::collections::{HashMap,HashSet};
-use xml::reader::{EventReader,XmlEvent};
-use crate::data::{VvP4,VvP2,P4};
-use crate::convert::degree_to_utm;
-use crate::logger::*;
+use crate::{
+    data::{ VvP4, VvP2, P4 },
+    convert::degree_to_utm,
+    logger::*,
+};
+
+use std::{
+    fs::File,
+    collections::{HashMap,HashSet},
+    str::FromStr,
+};
+
 use hex::FromHex;
-use std::str::FromStr;
+use xml::reader::{EventReader,XmlEvent};
+
 // right amount of spaces for x indentations
 fn indent(size: usize) -> String{
     const INDENT: &str = "  ";
     (0..size).map(|_| INDENT).fold(String::with_capacity(size*INDENT.len()), |r,s| r + s)
 }
+
 // clean out everything between {} inclusive, and to lowercase
 fn clean_name(name: String) -> String{
     let mut builder = String::new();
@@ -30,6 +38,7 @@ fn clean_name(name: String) -> String{
     }
     builder.to_ascii_lowercase()
 }
+
 // open file or die
 macro_rules! open_file{
     ($path:expr) => {
@@ -40,6 +49,7 @@ macro_rules! open_file{
         }
     };
 }
+
 // print a indented tree of opening xml tags
 pub fn print_xml_tag_tree(path: &str){
     let file = open_file!(path);
@@ -62,6 +72,7 @@ pub fn print_xml_tag_tree(path: &str){
         }
     }
 }
+
 // check if a certain tags is always present in another tag
 pub fn check_tag_child(path: &str, parent: &str, child: &str) -> bool{
     let file = open_file!(path);
@@ -95,6 +106,7 @@ pub fn check_tag_child(path: &str, parent: &str, child: &str) -> bool{
     }
     true
 }
+
 // check if certain tags are never empty
 pub fn check_nonempty_tag(path: &str, tag: &str) -> bool{
     let file = open_file!(path);
@@ -131,6 +143,7 @@ pub fn check_nonempty_tag(path: &str, tag: &str) -> bool{
     }
     true
 }
+
 // count all tags and print them out with counts
 pub fn print_xml_tag_count(path: &str){
     let file = open_file!(path);
@@ -162,6 +175,7 @@ pub fn print_xml_tag_count(path: &str){
         println!("Tag: {}, count: {}", key, count);
     }
 }
+
 // parse string of coordinates
 pub fn parse_coords(string: String) -> Vec<P4<f64>>{
     let mut line = Vec::new();
@@ -183,6 +197,7 @@ pub fn parse_coords(string: String) -> Vec<P4<f64>>{
     }
     line
 }
+
 // parse heightlines from kml file
 pub fn kml_height(path: &str) -> VvP4{
     let file = open_file!(path);
@@ -222,6 +237,7 @@ pub fn kml_height(path: &str) -> VvP4{
     }
     vvp4
 }
+
 //parse polygons from geological kml file
 pub fn kml_geo(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize, logger: &mut Logger) -> Vec<(usize,(VvP4,VvP4))>{
     let file = open_file!(path);
@@ -253,7 +269,7 @@ pub fn kml_geo(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut usize,
                     if attributes.len() != 1{
                         panic!("style tag should have only one attribute: id");
                     }
-                    style_id = attributes[0].value.clone();
+                    style_id.clone_from(&attributes[0].value);
                 }else if &nname == "polystyle"{
                     in_poly_style = true;
                 }else if &nname == "color" && in_poly_style{// fool, orang is coloure!
@@ -389,7 +405,7 @@ pub fn kml_geo_lines(path: &str, styles: &mut Vec<(u8,u8,u8,u8)>, counter: &mut 
                     if attributes.len() != 1{
                         panic!("style tag should have only one attribute: id");
                     }
-                    style_id = attributes[0].value.clone();
+                    style_id.clone_from(&attributes[0].value);
                 }else if &nname == "linestyle"{
                     in_line_style = true;
                 }else if &nname == "color" && in_line_style{// fool, orang is coloure!

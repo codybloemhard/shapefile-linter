@@ -1,10 +1,14 @@
+use crate::{
+    logger::*,
+    triangulate::PolyTriangle,
+    shapefile::*,
+    shapefile::record::polygon::GenericPolygon,
+    shapefile::record::polyline::GenericPolyline,
+};
+
 use std::borrow::Borrow;
+
 use bin_buffer::*;
-use shapefile::*;
-use shapefile::record::polygon::GenericPolygon;
-use shapefile::record::polyline::GenericPolyline;
-use crate::logger::*;
-use crate::triangulate::PolyTriangle;
 
 pub type P2<T> = (T,T);
 pub type P3<T> = (T,T,T);
@@ -19,6 +23,7 @@ pub type Vvec<T> = Vec<Vec<T>>;
 pub type VvP2 = Vvec<P2<f64>>;
 pub type VvP3 = Vvec<P3<f64>>;
 pub type VvP4 = Vvec<P4<f64>>;
+
 // Be sure it has at least 2 components
 pub trait HasXy<T>{
     fn xy(&self) -> (T,T);
@@ -35,6 +40,7 @@ impl <T: Copy + Default> HasXy<T> for &(T,T,T){
         (self.0,self.1)
     }
 }
+
 // Be sure it has at least three components
 pub trait HasXyz<T>{
     fn xyz(&self) -> (T,T,T);
@@ -51,6 +57,7 @@ impl<T: Copy> HasXyz<T> for &(T,T,T){
         **self
     }
 }
+
 // Be able to perform min,max, and have min and max values.
 // This is because float does not implement Cmp, so i can't use normal min and max.
 pub trait MinMax{
@@ -59,6 +66,7 @@ pub trait MinMax{
     fn min_of(self, x: Self) -> Self;
     fn max_of(self, x: Self) -> Self;
 }
+
 // Macro that can implement MinMax for given type
 macro_rules! ImplMinMax {
     ($ttype:ident) => {
@@ -71,12 +79,15 @@ macro_rules! ImplMinMax {
         }
     };
 }
+
 // Actual implementations
 ImplMinMax!(f64);ImplMinMax!(f32);ImplMinMax!(u64);ImplMinMax!(u32);ImplMinMax!(u16);ImplMinMax!(u8);
+
 // These types can stretch a bounding box
 pub trait Bounded<T>{
     fn stretch_bound(self, bb: &mut BB<T>);
 }
+
 // Any 2d value that has MinMax and Copy you can stretch a bound of your own inner type
 impl<T: MinMax + Copy> Bounded<T> for &(T,T){
     fn stretch_bound(self, bb: &mut BB<T>){
@@ -86,6 +97,7 @@ impl<T: MinMax + Copy> Bounded<T> for &(T,T){
         (bb.1).1 = (bb.1).1.max_of(self.1);
     }
 }
+
 // Same for 3d values but they also effect the z(obv)
 impl<T: MinMax + Copy> Bounded<T> for &(T,T,T){
     fn stretch_bound(self, bb: &mut BB<T>){
@@ -97,6 +109,7 @@ impl<T: MinMax + Copy> Bounded<T> for &(T,T,T){
         (bb.1).2 = (bb.1).2.max_of(self.2);
     }
 }
+
 // Bounding boxes can consist of these types
 pub trait BoundingType{
     // Default bounding box(0)
@@ -107,6 +120,7 @@ pub trait BoundingType{
     // Since min will be bigger than max
     fn start_box() -> BB<Self> where Self: Sized;
 }
+
 // Copy, Default, MinMax, Sized, are enough to make sure it can be a BoundingType
 impl<T> BoundingType for T
     where
@@ -122,10 +136,12 @@ impl<T> BoundingType for T
         (T::minv(),T::minv(),T::minv()))
     }
 }
+
 // Every custom type of shape has points so we can know how many points it has
 pub trait CustomShape{
     fn points_len(&self) -> usize;
 }
+
 // Indicates that a collection has a boundingbox
 pub trait HasBB<T>{
     // Return the boundingbox
@@ -133,11 +149,13 @@ pub trait HasBB<T>{
     // Set the boundingbox
     fn set_bounding_box(&mut self, bb: BB<T>);
 }
+
 // Indicates that it has a stretchable boundingbox
 pub trait StretchableBB{
     // Stretch the box using it's own points
     fn stretch_bb(&mut self);
 }
+
 // Macro that implements StretchableBB for us
 // Assumes that it has HasBB
 macro_rules! ImplStretchableBB{
@@ -158,6 +176,7 @@ macro_rules! ImplStretchableBB{
         }
     }
 }
+
 // Implement for collections
 ImplStretchableBB!(ShapeZ);
 ImplStretchableBB!(PolygonZ);
@@ -167,6 +186,7 @@ ImplStretchableBB!(StyledLine);
 pub trait UpdateableBB{
     fn update_bb(&mut self);
 }
+
 // ShapeZ kan update it's boundingbox
 impl<T> UpdateableBB for ShapeZ<T>
     where
@@ -179,17 +199,21 @@ impl<T> UpdateableBB for ShapeZ<T>
         self.set_bounding_box(bb);
     }
 }
+
 // These ones do not use UpdateableBB but we need them for generics
 impl<T> UpdateableBB for PolygonZ<T>
     where
     T: BoundingType + MinMax + Copy,
 { fn update_bb(&mut self){ /* noop */ } }
+
 impl<T> UpdateableBB for PolyTriangle<T>
     where
     T: BoundingType + MinMax + Copy,
 { fn update_bb(&mut self){ /* noop */ } }
+
 impl<T> UpdateableBB for StyledLine<T>
 { fn update_bb(&mut self){ /* noop */ } }
+
 // Stretch a bounding box with other boundingboxes
 // This to get the global boundingbox
 pub fn get_global_bb<T,U>(shapes: &[U]) -> BB<T>
@@ -217,6 +241,7 @@ pub fn get_global_bb<T,U>(shapes: &[U]) -> BB<T>
     }
     ((minx,miny,minz),(maxx,maxy,maxz))
 }
+
 // ShapeZ: a height line, all it's points are on the same height
 #[derive(Clone)]
 pub struct ShapeZ<T>{
@@ -224,6 +249,7 @@ pub struct ShapeZ<T>{
     pub z: T,
     pub bb: BB<T>,
 }
+
 // We want to export and import ShapeZ as buffer
 impl<T: Bufferable + Clone> Bufferable for ShapeZ<T>{
     fn into_buffer(self, buf: &mut Buffer){
@@ -254,6 +280,7 @@ impl<T: Bufferable + Clone> Bufferable for ShapeZ<T>{
         })
     }
 }
+
 // The next two are trivial
 impl<T> CustomShape for ShapeZ<T>{
     fn points_len(&self) -> usize{
@@ -270,11 +297,13 @@ impl<T> HasBB<T> for ShapeZ<T>{
         self.bb = bb
     }
 }
+
 // An iterator state that only has a reference
 pub struct ShapeZIter<'a,T>{
     pub current: usize,
     pub shapez: &'a ShapeZ<T>,
 }
+
 // ShapeZIter is an Iterator, it yields references to the points
 impl<'a, T> Iterator for ShapeZIter<'a, T>{
     type Item = &'a P2<T>;
@@ -288,6 +317,7 @@ impl<'a, T> Iterator for ShapeZIter<'a, T>{
         Option::Some(&self.shapez.points[i])
     }
 }
+
 // You can take an iterator from &ShapeZ
 impl<'a, T> IntoIterator for &'a ShapeZ<T>{
     type Item = &'a P2<T>;
@@ -300,6 +330,7 @@ impl<'a, T> IntoIterator for &'a ShapeZ<T>{
         }
     }
 }
+
 // Styles line is a line with a style
 #[derive(Clone)]
 pub struct StyledLine<T>{
@@ -307,6 +338,7 @@ pub struct StyledLine<T>{
     pub style: usize,
     pub bb: BB<T>,
 }
+
 // Make Styled Lines from raw data but cast to int. We need this as some of the generics wont play
 // nice with floats.
 impl<T> StyledLine<T>{
@@ -322,6 +354,7 @@ impl<T> StyledLine<T>{
         }
     }
 }
+
 // We want to export and import StyledLine as buffer
 impl<T: Bufferable + Clone> Bufferable for StyledLine<T>{
     fn into_buffer(self, buf: &mut Buffer){
@@ -347,6 +380,7 @@ impl<T: Bufferable + Clone> Bufferable for StyledLine<T>{
         })
     }
 }
+
 // The next two are trivial
 impl<T> CustomShape for StyledLine<T>{
     fn points_len(&self) -> usize{
@@ -363,11 +397,13 @@ impl<T> HasBB<T> for StyledLine<T>{
         self.bb = bb
     }
 }
+
 // Again we need a state to iterate over the collection
 pub struct StyledLineIter<'a,T>{
     pub current: usize,
     pub sline: &'a StyledLine<T>,
 }
+
 // Standard iterator. Multiple of these boys have iterators like this and it should be refactored.
 // Something like that it has a point collection and that one yield an iterator and only define
 // iterators for the point collections, removing doubly implemented iterators.
@@ -382,6 +418,7 @@ impl<'a, T> Iterator for StyledLineIter<'a, T>{
         Option::Some(&self.sline.points[cur])
     }
 }
+
 // Make possible to get the iterator
 impl<'a, T> IntoIterator for &'a StyledLine<T>{
     type Item = &'a P2<T>;
@@ -394,6 +431,7 @@ impl<'a, T> IntoIterator for &'a StyledLine<T>{
         }
     }
 }
+
 // Struct for PolygonZ's
 // Has inner and outer rings, in no order
 #[derive(Clone)]
@@ -403,6 +441,7 @@ pub struct PolygonZ<T>{
     pub bb: BB<T>,
     pub style: usize,
 }
+
 // Just a function that we use to build this struct from the raw unpacked data
 // we get from the shapfile
 impl<T: BoundingType + Copy> PolygonZ<T>{
@@ -426,6 +465,7 @@ impl<T: BoundingType + Copy> PolygonZ<T>{
         }
     }
 }
+
 // Not all generic functions like floats so we have a cast function that transfroms it into a int
 // collection. This is kind of ugly and would like some refactoring.
 pub fn int_cast(pzf64: PolygonZ<f64>) -> PolygonZ::<u32>
@@ -439,6 +479,7 @@ pub fn int_cast(pzf64: PolygonZ<f64>) -> PolygonZ::<u32>
         style: pzf64.style,
     }
 }
+
 // Next 3 implementations are trivial
 impl<T> CustomShape for PolygonZ<T>{
     fn points_len(&self) -> usize{
@@ -483,6 +524,7 @@ impl<T: Bufferable + Clone> Bufferable for PolygonZ<T>{
         })
     }
 }
+
 // Again we need a state to iterate over the collection
 // This one is more complicated
 // We have to iterate over many nested vectors
@@ -493,6 +535,7 @@ pub struct PolygonZIter<'a,T>{
     pub index: usize,
     pub poly: &'a PolygonZ<T>,
 }
+
 // Here we define how we actually loop over seperate nested vectors
 impl<'a, T> Iterator for PolygonZIter<'a, T>{
     type Item = &'a P3<T>;
@@ -537,6 +580,7 @@ impl<'a, T> Iterator for PolygonZIter<'a, T>{
         }
     }
 }
+
 // And ofcouse we can turn &PolygonZ into an iterator that yields &P3
 impl<'a, T> IntoIterator for &'a PolygonZ<T>{
     type Item = &'a P3<T>;
@@ -551,12 +595,14 @@ impl<'a, T> IntoIterator for &'a PolygonZ<T>{
         }
     }
 }
+
 // Same simple implementations for PolyTriangle.
 impl<T> CustomShape for PolyTriangle<T>{
     fn points_len(&self) -> usize{
         self.vertices.len()
     }
 }
+
 impl<T> HasBB<T> for PolyTriangle<T>{
     fn bounding_box(&self) -> &BB<T>{
         &self.bb
@@ -566,11 +612,13 @@ impl<T> HasBB<T> for PolyTriangle<T>{
         self.bb = bb
     }
 }
+
 // Again we need a state to iterate over the collection
 pub struct PolyTriangleIter<'a,T>{
     pub current: usize,
     pub poly: &'a PolyTriangle<T>,
 }
+
 impl<'a, T> Iterator for PolyTriangleIter<'a, T>{
     type Item = &'a P2<T>;
     fn next(&mut self) -> Option<Self::Item>{
@@ -582,6 +630,7 @@ impl<'a, T> Iterator for PolyTriangleIter<'a, T>{
         Option::Some(&self.poly.vertices[i])
     }
 }
+
 impl<'a, T> IntoIterator for &'a PolyTriangle<T>{
     type Item = &'a P2<T>;
     type IntoIter = PolyTriangleIter<'a, T>;
@@ -593,6 +642,7 @@ impl<'a, T> IntoIterator for &'a PolyTriangle<T>{
         }
     }
 }
+
 // Thank the gods for recursive generic type definitions
 pub type Poly<T> = (Vvec<T>,Vvec<T>);
 pub type Polys<T> = Vec<Poly<T>>;
@@ -600,6 +650,7 @@ pub type PolysP2 = Polys<P2<f64>>;
 pub type PolysP3 = Polys<P3<f64>>;
 pub type PolysP4 = Polys<P4<f64>>;
 pub type Splitted = (VP2,VP3,VP4,VvP2,VvP3,VvP4,VvP2,VvP3,VvP4,PolysP2,PolysP3,PolysP4);
+
 // Take the shapefile and turn it into seperate collections
 pub fn split(shapes: Vec<Shape>, logger: &mut Logger) -> Splitted{
     let mut points = Vec::new();

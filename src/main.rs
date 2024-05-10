@@ -7,9 +7,11 @@ extern crate hex;
 extern crate ass;
 
 use bin_buffer::*;
-use std::path::Path;
-use std::time::Instant;
-use std::collections::{HashMap};
+use std::{
+    path::Path,
+    time::Instant,
+    collections::HashMap,
+};
 
 pub mod data;
 pub mod info;

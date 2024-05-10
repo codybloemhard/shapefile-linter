@@ -1,12 +1,19 @@
-use crate::data::{PolygonZ,StretchableBB};
-use dlv_list::*;
-use crate::data::*;
-use crate::logger::*;
-use std::cmp::Ordering;
-use std::ops::{Add,Sub,Div,Mul};
+use crate::{
+    data::{ PolygonZ, StretchableBB },
+    data::*,
+    logger::*,
+};
+
+use std::{
+    cmp::Ordering,
+    ops::{ Add, Sub, Div, Mul },
+    convert::TryFrom,
+};
+
 use bin_buffer::*;
-use std::convert::TryFrom;
+use dlv_list::*;
 use ass::*;
+
 // Represents a collection of triangles expressed as vertices and indices.
 // Because we want to draw them.
 #[derive(Clone)]
@@ -16,6 +23,7 @@ pub struct PolyTriangle<T>{
     pub style: usize,
     pub bb: BB<T>,
 }
+
 // Standard stuff
 impl<T: Bufferable + Clone> Bufferable for PolyTriangle<T>{
     fn into_buffer(self, buf: &mut Buffer){
@@ -42,6 +50,7 @@ impl<T: Bufferable + Clone> Bufferable for PolyTriangle<T>{
         })
     }
 }
+
 #[derive(Clone,PartialEq)]
 struct PolyPoint<T>{
     point: P3<T>,
@@ -221,7 +230,8 @@ where
     sum > 0.0
 }
 
-fn group_polygons<T>(polygon: PolygonZ<T>, skipped: &mut i64) -> Vec<(Vec<P3<T>>, Vvec<P3<T>>)>
+type Polygons<T> = Vec<(Vec<P3<T>>, Vvec<P3<T>>)>;
+fn group_polygons<T>(polygon: PolygonZ<T>, skipped: &mut i64) -> Polygons<T>
 where
     T: Mul<Output = T> + Div<Output = T> + Add<Output = T> + Sub<Output = T> + PartialOrd + Copy + std::fmt::Display,
     u8: Into<T>,
@@ -368,7 +378,7 @@ where
             new_vertices.push(*point);
         }
 
-        *outer = new_vertices.clone();
+        outer.clone_from(&new_vertices);
     }
     outer.to_vec()
 }
@@ -529,7 +539,7 @@ where
         }
     }
 
-    let mut p_mut = polygon.get_mut(i).expect("Critical triangulation unwrap failed nr. 8");
+    let p_mut = polygon.get_mut(i).expect("Critical triangulation unwrap failed nr. 8");
     p_mut.reflex = reflex;
     p_mut.ear = ear;
 }

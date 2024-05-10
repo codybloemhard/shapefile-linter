@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+
 // Issues you can give the logger.
 #[derive(Clone,PartialEq,Eq,Hash)]
 pub enum Issue{

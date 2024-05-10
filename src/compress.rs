@@ -1,15 +1,21 @@
+use crate::{
+    data::{
+        PolygonZ, Vvec, StretchableBB, get_global_bb, UpdateableBB, ShapeZ, P2, P3, VvP4, StyledLine
+    },
+    info::CompTarget,
+    logger::*,
+    triangulate::triangulate,
+    triangulate::PolyTriangle,
+};
+
 use bin_buffer::*;
-use crate::data::{PolygonZ,Vvec,StretchableBB,get_global_bb,UpdateableBB,ShapeZ,P2,P3,VvP4,StyledLine};
-use crate::info::CompTarget;
-use crate::logger::*;
-use crate::triangulate::triangulate;
-use crate::triangulate::PolyTriangle;
 use ass::*;
 
-// Peform compression by using a range offset and multiplier
+// Perform compression by using a range offset and multiplier
 pub trait OffScaleFromU64{
     fn offscale(x: f64, o: u64, m: u64) -> Self;
 }
+
 // Generic implementation
 impl<T> OffScaleFromU64 for T
     where
@@ -19,6 +25,7 @@ impl<T> OffScaleFromU64 for T
         (((x - o as f64) * m as f64).round() as u64).ass()
     }
 }
+
 // We must be able to cast a bounding box to the right type as well
 fn bb_to_t<T>(bb: (P3<f64>,P3<f64>)) -> (P3<T>,P3<T>)
     where
@@ -29,15 +36,18 @@ fn bb_to_t<T>(bb: (P3<f64>,P3<f64>)) -> (P3<T>,P3<T>)
         (((bb.1).0 as u64).ass(), ((bb.1).1 as u64).ass(), ((bb.1).2 as u64).ass()),
     )
 }
+
 // Ability to be convertable to a compressed buffer
 pub trait Compressable
 {
     fn compress(self, infos: (u64,u64,u64,u64,CompTarget), logger: &mut Logger) -> Buffer;
 }
+
 // Ability to be transformed into triangles and than compressed into buffer
 pub trait TriangleCompressable{
     fn triangle_compress(self, infos: (u64,u64,u64,u64,CompTarget), logger: &mut Logger) -> Buffer;
 }
+
 // Macro that builds a generic implementation of Compressable
 macro_rules! ImplCompressable {
     ($tname:ident,$tfname:ident,$btype:ty,$fname:ident,$trans:ident) => {
@@ -78,14 +88,17 @@ macro_rules! ImplCompressable {
         }
     };
 }
+
 // dummy function for when we don't need a transformation
 fn id<T>(v: T, _logger: &mut Logger) -> T { v }
+
 // Actually implement it for the needed types
 ImplCompressable!(Compressable,compress,Vec<ShapeZ<f64>>,compress_shapez_into,id);
 ImplCompressable!(Compressable,compress,Vec<PolygonZ<f64>>,compress_polygonz_into,id);
 ImplCompressable!(Compressable,compress,Vec<PolyTriangle<u32>>,compress_polytriangle_into,id);
 ImplCompressable!(Compressable,compress,Vec<StyledLine<u32>>,compress_styledline_into,id);
 ImplCompressable!(TriangleCompressable,triangle_compress,Vec<PolygonZ<f64>>,compress_polygonz_into,triangulate);
+
 // Take ShapeZ of f64 and turn into ShapeZ of given T
 // Used to implement Compressable
 pub fn compress_shapez_into<T: Bufferable>
@@ -109,6 +122,7 @@ pub fn compress_shapez_into<T: Bufferable>
     }
     nshapezs
 }
+
 // Same as above but for PolygonZ
 pub fn compress_polygonz_into<T: Bufferable>
     (polygonzs: Vec<PolygonZ<f64>>, mx: u64, my: u64, multi: u64) -> Vec<PolygonZ<T>>
@@ -141,6 +155,7 @@ pub fn compress_polygonz_into<T: Bufferable>
     }
     npolygonzs
 }
+
 // styles lines start as u32
 pub fn compress_styledline_into<T: Bufferable>
     (slines: Vec<StyledLine<u32>>, mx: u64, my: u64, multi: u64) -> Vec<StyledLine<T>>
@@ -169,6 +184,7 @@ pub fn compress_styledline_into<T: Bufferable>
     }
     nslines
 }
+
 // Start with u32 just like styled lines
 pub fn compress_polytriangle_into<T: Bufferable>
     (polytriangles: Vec<PolyTriangle<u32>>, mx: u64, my: u64, multi: u64) -> Vec<PolyTriangle<T>>
@@ -194,6 +210,7 @@ pub fn compress_polytriangle_into<T: Bufferable>
     }
     npts
 }
+
 // Specific commpression method for heightmaps
 // Does nothing with value types, removes redundant data
 pub fn compress_heightmap(shapes: VvP4, logger: &mut Logger)
